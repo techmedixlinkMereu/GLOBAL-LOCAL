@@ -173,6 +173,8 @@ export const adminUserRoleFilter = ref('all');
 export const adminReqSearch  = ref('');
 export const adminReqFilter  = ref('all');
 export const adminPlatFilter = ref('all');
+export const adminDateFrom    = ref('');
+export const adminDateTo      = ref('');
 
 export const prodPage  = ref(0); export const PROD_PER_PAGE = 20;
 export const reqPage   = ref(0); export const REQ_PER_PAGE  = 25;
@@ -180,6 +182,14 @@ export const userPage  = ref(0); export const USER_PER_PAGE = 30;
 export const prodTotal = ref(0);
 export const reqTotal  = ref(0);
 export const userTotal = ref(0);
+
+
+// ── New UI state (improvements batch) ────────────────────────────
+export const showSearchOverlay   = ref(false);
+export const basketRestored      = ref(false);
+export const adminProdSearch     = ref('');
+export const rateAgeDisplay      = ref('');
+export const rateAgeClock        = ref(null);
 
 // ── Messages ─────────────────────────────────────────────────────
 export const showMessagesPanel   = ref(false);
