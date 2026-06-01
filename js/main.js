@@ -7,6 +7,7 @@ import * as S from './state.js';
 import * as A from './actions.js';
 import * as F from './formatters.js';
 import { sb } from './db.js';
+import { TECHMEDIX_CONFIG } from '../config.js';
 
 const { createApp, computed, watch, onMounted, nextTick } = Vue;
 
