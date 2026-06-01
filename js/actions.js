@@ -9,7 +9,7 @@ import {
   adminUsers, shoppers, addresses, analyticsData, sellerAnalytics,
   sellerAnalyticsLoading, productReviews, pdReviews, pdLoading,
   usdToTzs, rateSource, rateUpdatedAt,
-  basket, showBasket, usdToTzs as rate,
+  basket, showBasket,
   showAuth, showListingModal, showReqModal, showQuoteModal, showReviewModal,
   showShopperModal, showProfileModal, showNotifPanel, showUserPanel,
   showAdminUserModal, adminViewUser, adminEditingUser,
@@ -606,6 +606,7 @@ export function goTab(t, loadAnalyticsFn, loadSellerAnalyticsFn) {
   if (t === 'seller-analytics') setTimeout(() => loadSellerAnalyticsFn?.(), 0);
   if (t === 'shoppers') loadShoppers();
   if (t === 'admin-users' || t === 'admin-listings') { loadAdminUsers(); loadProds(); }
+  if (t === 'admin') { loadAdminUsers(); loadReqs(); loadPayments(); }
 }
 
 export function closeAllMenus() {
@@ -1407,7 +1408,38 @@ export async function bulkSetUserRole(role) {
   toast('ok', `${ids.length} users updated`);
 }
 
-// ── MESSAGES ─────────────────────────────────────────────────────
+// ── ADMIN: CONFIRM INDIVIDUAL PAYMENT ────────────────────────────
+export async function confirmPaymentAdmin(payment) {
+  const ok = await verifyAdminServer();
+  if (!ok) { toast('err', 'Unauthorised'); return; }
+  loading.value = true; loadMsg.value = 'Confirming payment…';
+  const { error } = await sb.from('payments').update({
+    status: 'completed',
+    completed_date: new Date().toISOString(),
+  }).eq('id', payment.id);
+  if (error) { loading.value = false; toast('err', 'Error', error.message); return; }
+  // Update the parent request's deposit/balance
+  const req = allRequests.value.find(r => r.id === payment.request_id);
+  if (req) {
+    const newDeposit   = (req.deposit_paid || 0) + payment.amount;
+    const newBalance   = Math.max(0, (req.total_cost || 0) - newDeposit);
+    const newPayStatus = newBalance <= 0 ? 'paid' : 'partial';
+    await sb.from('requests').update({
+      deposit_paid: newDeposit, balance_due: newBalance,
+      payment_status: newPayStatus,
+      status: ['pending','processing','quoted'].includes(req.status) ? 'deposit_paid' : req.status,
+      updated_at: new Date().toISOString()
+    }).eq('id', req.id);
+    await createNotification(req.user_id, 'payment_received', 'Payment Confirmed',
+      `Your payment of ${tzs(payment.amount)} for ${req.request_number} has been confirmed.`,
+      req.id, 'in_app');
+  }
+  await loadPayments(); await loadReqs();
+  loading.value = false;
+  toast('ok', 'Payment confirmed', tzs(payment.amount));
+}
+
+
 let activeMessageChannel = null;
 
 export async function openMessages(r) {
