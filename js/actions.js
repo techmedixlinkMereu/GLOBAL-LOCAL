@@ -35,7 +35,7 @@ import {
   toast, killToast,
 } from './state.js';
 
-import { fStatus, tzs, fDate, fDateTime, sanitize as _san } from './formatters.js';
+import { fStatus, tzs, fDate, fDateTime } from './formatters.js';
 
 // ── SECURITY ─────────────────────────────────────────────────────
 export function sanitize(str, maxLen = 500) {
