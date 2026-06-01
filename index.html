@@ -28,8 +28,32 @@
 <meta name="twitter:title" content="TechMedixLink · Medical Equipment Platform">
 <meta name="twitter:description" content="Tanzania's premier medical equipment sourcing and procurement marketplace.">
 <link rel="stylesheet" href="app.css">
+<style>
+@keyframes skeleton-pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.basket-pulse .fa-basket-shopping{animation:basket-bounce 0.4s ease}
+@keyframes basket-bounce{0%{transform:scale(1)}50%{transform:scale(1.4)}100%{transform:scale(1)}}
+</style>
+<style>
+@keyframes basket-pulse { 0%,100%{transform:scale(1)} 40%{transform:scale(1.35)} 70%{transform:scale(0.9)} }
+.basket-pulse { animation: basket-pulse 0.4s ease; }
+@keyframes copy-flash { 0%{background:var(--ok-bg);color:var(--ok)} 100%{background:transparent} }
+.copy-flash { animation: copy-flash 0.8s ease; }
+.skeleton { background: linear-gradient(90deg, var(--bg-2) 25%, var(--bg-3) 50%, var(--bg-2) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 6px; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+</style>
+<script>
+// Hide loader once Vue mounts
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    const loader = document.getElementById('app-loader');
+    if (loader) loader.classList.add('hidden');
+  }, 400);
+});
+</script>
 </head>
 <body>
+<a href="#main-content" class="skip-to-content">Skip to main content</a>
+<div id="app-loader"><div class="loader-brand">Tech<em>Medix</em>Link</div><div class="loader-spinner"></div></div>
 <div id="app" v-cloak>
 
 <!-- ── D: AUTH LANDING SCREEN ── -->
@@ -93,6 +117,36 @@
   </div>
 </div>
 
+<!-- MOBILE SEARCH OVERLAY (item 48) -->
+<transition name="fade">
+  <div v-if="showSearchOverlay" class="search-overlay" @keydown.esc="showSearchOverlay=false">
+    <div class="search-overlay-input">
+      <i class="fas fa-search" style="color:var(--tx-3);font-size:16px"></i>
+      <input type="text" v-model="globalSearch" placeholder="Search products, brands, categories…"
+        ref="searchOverlayInput" @keydown.enter="performSearch;showSearchOverlay=false" autofocus>
+      <button @click="showSearchOverlay=false" class="btn btn-g btn-sm"><i class="fas fa-times"></i>Cancel</button>
+    </div>
+    <div v-if="globalSearch" class="search-overlay-results">
+      <div v-for="p in products.filter(p=>p.name?.toLowerCase().includes(globalSearch.toLowerCase())||p.manufacturer?.toLowerCase().includes(globalSearch.toLowerCase())).slice(0,6)"
+        :key="p.id"
+        @click="openProductDetail(p);showSearchOverlay=false;globalSearch=''"
+        style="display:flex;align-items:center;gap:var(--s3);padding:var(--s3) 0;border-bottom:1px solid var(--ln-0);cursor:pointer">
+        <div style="width:36px;height:36px;border-radius:var(--r2);overflow:hidden;flex-shrink:0;background:var(--bg-2)">
+          <img v-if="p.image_url" :src="p.image_url" style="width:100%;height:100%;object-fit:cover">
+          <i v-else class="fas fa-box" style="font-size:12px;color:var(--tx-3);margin:12px 12px"></i>
+        </div>
+        <div>
+          <div style="font-size:var(--tsm);font-weight:600;color:var(--tx-1)">{{ p.name }}</div>
+          <div style="font-size:var(--txs);color:var(--tx-3)">${{ fNum(p.base_price_usd) }} · {{ p.country }}</div>
+        </div>
+      </div>
+      <div v-if="!products.filter(p=>p.name?.toLowerCase().includes(globalSearch.toLowerCase())).length"
+        style="text-align:center;padding:var(--s5);color:var(--tx-3)">No results for "{{ globalSearch }}"</div>
+    </div>
+    <div v-else style="padding:var(--s4);text-align:center;color:var(--tx-4)">Start typing to search products…</div>
+  </div>
+</transition>
+
 <!-- CONFIRM -->
 <transition name="modal">
   <div v-if="confirm" class="modal-bg" @click.self="confirm=null">
@@ -102,8 +156,8 @@
         <div style="font-family:var(--fd);font-size:23px;font-weight:500;color:var(--tx-1);margin-bottom:var(--s2)">{{  confirm.title  }}</div>
         <div style="font-size:var(--tsm);color:var(--tx-2);max-width:280px;margin:0 auto var(--s6);line-height:1.6">{{  confirm.msg  }}</div>
         <div style="display:flex;gap:var(--s2);justify-content:center">
-          <button @click="confirm.ok();confirm=null" class="btn btn-p">{{  confirm.ok_lbl||'Confirm'  }}</button>
           <button @click="confirm=null" class="btn btn-g">Cancel</button>
+          <button @click="confirm.ok();confirm=null" class="btn" :class="confirm.tone==='er'?'btn-d':confirm.tone==='ok'?'btn-ok':'btn-p'">{{  confirm.ok_lbl||'Confirm'  }}</button>
         </div>
       </div>
     </div>
@@ -124,7 +178,6 @@
           <div class="auth-tab" :class="{active:authTab==='login'}"  @click="authTab='login';authErr=''">Sign In</div>
           <div class="auth-tab" :class="{active:authTab==='magic'}"  @click="authTab='magic';authErr=''">Magic Link</div>
           <div class="auth-tab" :class="{active:authTab==='signup'}" @click="authTab='signup';authErr=''">Sign Up</div>
-          <div class="auth-tab" :class="{active:authTab==='reset'}"  @click="authTab='reset';authErr=''">Reset</div>
         </div>
         <!-- LOGIN -->
         <div v-if="authTab==='login'">
@@ -184,7 +237,18 @@
             </div>
           </div>
           <div class="fr2">
-            <div class="fg"><label class="lbl req">I want to…</label><select v-model="aF.user_role" class="sel"><option value="buyer">Buy products</option><option value="seller">Sell products</option><option value="both">Buy & Sell</option></select></div>
+            <div class="fg"><label class="lbl req">I want to…</label>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s2);margin-top:var(--s1)">
+              <div v-for="r in [{v:'buyer',i:'fas fa-cart-shopping',l:'Buy',d:'Source & order equipment'},{v:'seller',i:'fas fa-store',l:'Sell',d:'List & quote products'},{v:'both',i:'fas fa-arrows-left-right',l:'Both',d:'Buy and sell'}]" :key="r.v"
+                @click="aF.user_role=r.v"
+                :style="aF.user_role===r.v?'border-color:var(--philips);background:var(--philips-l);':''"
+                style="border:1.5px solid var(--ln-2);border-radius:var(--r2);padding:var(--s2) var(--s2);text-align:center;cursor:pointer;transition:all 0.15s">
+                <i :class="r.i" style="font-size:16px;color:var(--philips);margin-bottom:4px;display:block"></i>
+                <div style="font-size:var(--tsm);font-weight:700;color:var(--tx-1)">{{ r.l }}</div>
+                <div style="font-size:9px;color:var(--tx-3);margin-top:1px">{{ r.d }}</div>
+              </div>
+            </div>
+          </div>
             <div class="fg"><label class="lbl req">Account Type</label><select v-model="aF.user_type" class="sel"><option value="individual">Individual</option><option value="hospital">Hospital</option><option value="clinic">Clinic</option><option value="lab">Laboratory</option><option value="business">Business</option><option value="ngo">NGO</option></select></div>
           </div>
           <div class="fg" v-if="['hospital','clinic','lab','business','ngo'].includes(aF.user_type)"><label class="lbl">Organisation Name</label><input type="text" v-model="aF.company_name" class="inp" placeholder="Your organisation"></div>
@@ -192,6 +256,8 @@
             <label class="chk"><input type="checkbox" v-model="tcAccepted"><span class="chk-lbl" style="font-size:var(--txs)">I agree to the <span @click.prevent="showTcModal=true" style="color:var(--philips);cursor:pointer;text-decoration:underline">Terms of Service</span> and <span @click.prevent="showTcModal=true" style="color:var(--philips);cursor:pointer;text-decoration:underline">Privacy Policy</span> of TechMedixLink</span></label>
           </div>
           <button @click="doSignup" class="btn btn-p btn-wc" :disabled="!aF.email||!aF.password||!aF.full_name||!tcAccepted"><i class="fas fa-user-plus"></i> Create Account</button>
+          <div class="info-strip in" style="margin-top:var(--s3)"><i class="fas fa-envelope" style="color:var(--info);flex-shrink:0"></i><div style="font-size:var(--txs);color:var(--info);line-height:1.5">After signing up, check your inbox for a confirmation email before signing in. Check your spam folder if not received within 2 minutes.</div></div>
+          <div class="info-strip in" style="margin-top:var(--s3)"><i class="fas fa-envelope" style="color:var(--info);flex-shrink:0"></i><div style="font-size:var(--txs);color:var(--info);line-height:1.5">After signing up, check your inbox for a confirmation email before signing in.</div></div>
         </div>
         <!-- PASSWORD RESET -->
         <div v-if="authTab==='reset'">
@@ -512,7 +578,8 @@
     <!-- NOTIFICATION PANEL -->
     <transition name="slide">
       <div v-if="showNotifPanel" class="dd-ov" @click.stop>
-        <div class="dd-hd"><span class="dd-hd-ttl">Notifications</span><div style="display:flex;gap:6px"><button @click="markAllRead" class="btn btn-g btn-xs">Mark all read</button><button @click="showNotifPanel=false" class="btn btn-sq sm btn-g"><i class="fas fa-times" style="font-size:9px"></i></button></div></div>
+        <div class="dd-hd"><span class="dd-hd-ttl">Notifications</span><div style="display:flex;gap:6px"><button @click="markAllRead" class="btn btn-g btn-xs">Mark all read</button>
+              <button @click="notifications=notifications.filter(n=>!n.is_read)" class="btn btn-g btn-xs" style="color:var(--tx-3)"><i class="fas fa-trash" style="font-size:9px"></i>Clear read</button><button @click="showNotifPanel=false" class="btn btn-sq sm btn-g"><i class="fas fa-times" style="font-size:9px"></i></button></div></div>
         <div v-if="!notifications.length" style="text-align:center;padding:var(--s5) var(--s4)">
           <div style="width:44px;height:44px;border-radius:var(--r2);background:var(--bg-2);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--tx-4);margin:0 auto var(--s3)"><i class="fas fa-bell-slash"></i></div>
           <div style="font-size:var(--tsm);color:var(--tx-3)">No notifications yet</div>
@@ -565,6 +632,8 @@
         <div class="nav-item" @click="goTab('payments');showUserPanel=false"><i class="ni fas fa-credit-card"></i>Payment History</div>
         <div class="hr" style="margin:var(--s2) 0"></div>
         <div class="nav-item" @click="doLogout" style="color:var(--err)"><i class="ni fas fa-sign-out-alt" style="color:var(--err)"></i>Sign Out</div>
+        <div class="hr" style="margin:var(--s1) 0"></div>
+        <a href="https://wa.me/34659447627?text=Hi%20TechMedixLink%20Support%2C%20I%20need%20help%20with..." target="_blank" class="nav-item" style="text-decoration:none;color:var(--tx-1)"><i class="ni fab fa-whatsapp" style="color:#25d366"></i>Contact Support</a>
       </div>
     </transition>
 
@@ -818,11 +887,10 @@
               <button v-if="profile&&canSell" @click="openListingModal()" class="btn btn-s btn-w"><i class="fas fa-store"></i>Add Product Listing</button>
               <button @click="goTab('browse')" class="btn btn-g btn-w"><i class="fas fa-magnifying-glass"></i>Browse All Products</button>
               <button @click="goTab('tracking')" class="btn btn-g btn-w"><i class="fas fa-location-dot"></i>Track a Shipment</button>
+              <a href="https://wa.me/34659447627?text=Hi%20TechMedixLink%20Support..." target="_blank" class="btn btn-g btn-w" style="text-decoration:none"><i class="fab fa-whatsapp" style="color:#25d366"></i>Contact Support</a>
             </div>
             <div class="hr"></div>
-            <div style="font-size:10px;font-weight:700;color:var(--tx-4);letter-spacing:0.12em;text-transform:uppercase;margin:var(--s4) 0">Platform Split</div>
-            <div style="margin-bottom:var(--s3)"><div style="display:flex;justify-content:space-between;font-size:var(--txs);margin-bottom:5px"><span style="color:var(--tm);font-weight:600;display:flex;align-items:center;gap:4px"><i class="fas fa-heart-pulse" style="font-size:9px"></i>TechMedixLink</span><span style="font-family:var(--fm);font-size:10px;color:var(--tx-3)">{{  pStats.tm  }}%</span></div><div class="prog"><div class="prog-f" :style="{width:pStats.tm+'%',background:'var(--tm)'}"></div></div></div>
-            <div><div style="display:flex;justify-content:space-between;font-size:var(--txs);margin-bottom:5px"><span style="color:var(--gd);font-weight:600;display:flex;align-items:center;gap:4px"><i class="fas fa-globe" style="font-size:9px"></i>Global Door</span><span style="font-family:var(--fm);font-size:10px;color:var(--tx-3)">{{  pStats.gd  }}%</span></div><div class="prog"><div class="prog-f" :style="{width:pStats.gd+'%',background:'var(--gd)'}"></div></div></div>
+            <div v-if="profile" class="info-strip in" style="margin:0"><i class="fas fa-circle-info" style="color:var(--info);flex-shrink:0"></i><div style="font-size:var(--txs);color:var(--info);line-height:1.5">Profile <strong>{{ profileCompletion.pct }}%</strong> complete — <span @click="showProfileModal=true" style="cursor:pointer;text-decoration:underline">finish your profile</span> to unlock all features.</div></div>
           </div>
         </div>
       </div>
@@ -830,7 +898,7 @@
 
       <!-- ── BROWSE ── -->
       <div v-if="tab==='browse'">
-        <div class="sect-hd fu"><div><div class="sect-ttl">Browse Products</div><div class="sect-sub">{{  browseSubtitle  }}</div></div></div>
+        <div class="sect-hd fu"><div><div class="sect-ttl">Browse Products <span v-if="platform!=='both'" style="font-size:13px;font-weight:400;color:var(--tx-3)">· {{ platform==='techmedix'?'TechMedixLink':'GlobalDoor' }}</span></div><div class="sect-sub">{{  browseSubtitle  }}</div></div></div>
         <!-- Filters -->
         <div class="card fu fu-1" style="margin-bottom:var(--s3)">
           <div style="display:flex;gap:var(--s2);flex-wrap:wrap;margin-bottom:var(--s3)">
@@ -863,6 +931,18 @@
           </div>
         </div>
         <!-- Product grid -->
+        <!-- Loading skeleton -->
+        <div v-if="loading && !filteredProds.length" class="prod-grid fu fu-2">
+          <div v-for="n in 8" :key="n" class="prod-card">
+            <div class="pc-img skeleton" style="height:160px"></div>
+            <div class="pc-body" style="gap:var(--s2)">
+              <div class="skeleton" style="height:16px;width:80%;margin-bottom:4px"></div>
+              <div class="skeleton" style="height:12px;width:50%"></div>
+              <div class="skeleton" style="height:12px;width:60%;margin-top:8px"></div>
+              <div class="skeleton" style="height:28px;width:100%;margin-top:12px;border-radius:6px"></div>
+            </div>
+          </div>
+        </div>
         <div v-if="filteredProds.length" class="prod-grid fu fu-2">
           <div v-for="p in filteredProds" :key="p.id" class="prod-card" @click.self="openProductDetail(p)">
             <div class="pc-img pc-img-hoverable" @click="openProductDetail(p)" style="cursor:pointer">
@@ -878,13 +958,13 @@
             </div>
             <div class="pc-body">
               <div class="pc-name" @click="openProductDetail(p)" style="cursor:pointer">{{  p.name  }}</div>
-              <div class="pc-seller"><i class="fas fa-store" style="font-size:8px"></i>{{  p.seller_name||'TechMedixLink'  }}<span v-if="p.seller_verified || adminUsers.find(u=>u.id===p.user_id)?.company_name?.startsWith('[VERIFIED]')" class="vbadge"><i class="fas fa-check-circle"></i></span></div>
+              <div class="pc-seller"><i class="fas fa-store" style="font-size:8px"></i><span class="pc-seller-link" @click.stop="manufFilter=p.seller_name||'TechMedixLink';goTab('browse')" :title="'Browse all from '+( p.seller_name||'TechMedixLink')">{{  p.seller_name||'TechMedixLink'  }}</span><span v-if="p.seller_verified || adminUsers.find(u=>u.id===p.user_id)?.company_name?.startsWith('[VERIFIED]')" class="vbadge"><i class="fas fa-check-circle"></i></span></div>
               <div class="pc-loc"><i class="fas fa-location-dot" style="font-size:8px"></i>{{  p.country||'Tanzania'  }}</div>
               <div class="pc-stars">
                 <i v-for="s in 5" :key="s" class="pc-star fas fa-star" :class="{on:s<=(p.avg_rating||0)}"></i>
                 <span class="pc-rating-count">({{  p.review_count||0  }})</span>
               </div>
-              <p class="pc-desc">{{  p.description||'High quality medical equipment available for sourcing.'  }}</p>
+              <p v-if="p.description" class="pc-desc">{{  p.description  }}</p>
               <div class="pc-tags">
                 <span v-if="p.warranty_months" class="badge b-mu" style="font-size:9px"><i class="fas fa-shield-halved" style="font-size:7px"></i>{{  p.warranty_months  }}m warranty</span>
                 <span v-if="p.requires_installation" class="badge b-in" style="font-size:9px">Installation</span>
@@ -907,8 +987,8 @@
                 <!-- Buyer or seller viewing someone else's product -->
                 <template v-else>
                   <button @click="openProductDetail(p)" class="btn btn-g btn-sm" style="flex:1"><i class="fas fa-eye"></i>Details</button>
-                  <button v-if="canBuy" @click="addToBasket(p)" class="btn btn-s btn-sm btn-sq" title="Add to basket" :disabled="!p.is_active"><i class="fas fa-basket-shopping" style="font-size:11px"></i></button>
-                  <button v-if="canBuy" @click="quickRequest(p)" class="btn btn-p btn-sm" style="flex:1" :disabled="!p.is_active"><i class="fas fa-cart-plus"></i>Request</button>
+                  <button v-if="canBuy" @click="addToBasket(p);$event.target.closest('button').classList.add('btn-ok');setTimeout(()=>$event.target.closest('button').classList.remove('btn-ok'),800)" class="btn btn-s btn-sm btn-sq" title="Add to basket"><i class="fas fa-basket-shopping" style="font-size:11px"></i></button>
+                  <button v-if="canBuy" @click="quickRequest(p)" class="btn btn-p btn-sm" style="flex:1" :disabled="!p.is_active"><i class="fas fa-cart-plus"></i>{{ p.stock_quantity > 0 ? "Request" : "Source" }}</button>
                 </template>
               </div>
             </div>
@@ -921,6 +1001,24 @@
       <!-- ── MY REQUESTS ── -->
       <div v-if="tab==='my-requests' && profile">
         <div class="sect-hd fu"><div><div class="sect-ttl">My Requests</div><div class="sect-sub">{{  myRequests.length  }} total · {{  myActiveReqs.length  }} active</div></div><button @click="showReqModal=true" class="btn btn-p btn-sm"><i class="fas fa-plus"></i>New Request</button></div>
+        <div v-if="myRequests.length" class="fu fu-1" style="display:flex;gap:var(--s3);flex-wrap:wrap;margin-bottom:var(--s3)">
+          <div class="card-sm" style="flex:1;min-width:100px;text-align:center">
+            <div style="font-size:18px;font-weight:700;font-family:var(--fm);color:var(--philips)">{{ myActiveReqs.length }}</div>
+            <div style="font-size:10px;color:var(--tx-3)">Active orders</div>
+          </div>
+          <div v-if="myBalanceDue>0" class="card-sm" style="flex:1;min-width:100px;text-align:center;border-color:var(--err-bd);background:var(--err-bg)">
+            <div style="font-size:15px;font-weight:800;font-family:var(--fm);color:var(--err)">{{ tzs(myBalanceDue) }}</div>
+            <div style="font-size:10px;color:var(--err)">Balance due</div>
+          </div>
+          <div class="card-sm" style="flex:1;min-width:100px;text-align:center">
+            <div style="font-size:18px;font-weight:700;font-family:var(--fm);color:var(--ok)">{{ myDoneReqs.length }}</div>
+            <div style="font-size:10px;color:var(--tx-3)">Completed</div>
+          </div>
+          <div class="card-sm" style="flex:1;min-width:100px;text-align:center">
+            <div style="font-size:15px;font-weight:700;font-family:var(--fm);color:var(--tx-2)">{{ tzs(myTotalSpent) }}</div>
+            <div style="font-size:10px;color:var(--tx-3)">Total paid</div>
+          </div>
+        </div>
         <!-- Filters -->
         <div style="display:flex;gap:var(--s2);margin-bottom:var(--s3);flex-wrap:wrap" class="fu fu-1">
           <input type="text" v-model="reqSearch" placeholder="Search request number…" class="inp" style="max-width:200px;border-radius:var(--rp)">
@@ -928,9 +1026,15 @@
           <select v-model="reqPlatFilter" class="sel" style="width:140px;border-radius:var(--rp)"><option value="all">All Platforms</option><option value="techmedix">TechMedixLink</option><option value="globaldoor">GlobalDoor</option></select>
         </div>
         <div v-if="!filteredMyReqs.length" class="empty fu fu-2"><div class="empty-ico"><i class="fas fa-clipboard-list"></i></div><div class="empty-ttl">No requests yet</div><div class="empty-sub">Browse products and submit your first sourcing request.</div><button @click="goTab('browse')" class="btn btn-p">Browse Products</button></div>
-        <div v-for="r in filteredMyReqs" :key="r.id" class="req-card fu fu-2">
+        <div v-for="r in filteredMyReqs" :key="r.id" class="req-card fu fu-2" :style="['cancelled','completed','delivered','installed'].includes(r.status)?'opacity:0.7;':''" >
           <div class="req-hd">
-            <span class="req-num">{{  r.request_number  }}</span>
+            <span class="req-num" style="display:flex;align-items:center;gap:6px">
+              {{  r.request_number  }}
+              <button @click.stop="navigator.clipboard.writeText(r.request_number).then(()=>toast('ok','Copied!',r.request_number))"
+                class="btn btn-g btn-xs btn-sq" style="padding:2px 5px;height:20px;width:20px;border-radius:4px" title="Copy reference number">
+                <i class="fas fa-copy" style="font-size:8px"></i>
+              </button>
+            </span>
             <div style="display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap">
               <span class="badge" :class="r.platform_type==='techmedix'?'b-tm':'b-gd'">{{  r.platform_type==='techmedix'?'TechMedixLink':'GlobalDoor'  }}</span>
               <span class="badge" :class="sBadge(r.status)">{{  fStatus(r.status)  }}</span>
@@ -945,7 +1049,7 @@
             <button @click="declineQuote(r)" class="btn btn-d btn-sm"><i class="fas fa-times"></i>Decline</button>
           </div>
           <!-- Stepper -->
-          <div class="stepper">
+          <div class="stepper" :title="'Status: '+fStatus(r.status)">
             <div v-for="(st,idx) in stepperStages" :key="st.val" class="step" :class="stepCls(r.status,idx)">
               <div class="step-dot"><i class="fas fa-check" style="font-size:5px"></i></div>
               <div class="step-lbl">{{  st.short  }}</div>
@@ -985,9 +1089,9 @@
         <div class="prod-grid fu fu-1">
           <div v-for="p in myListings" :key="p.id" class="prod-card" style="opacity:1" :style="!p.is_active?'opacity:0.6':''">
             <div class="pc-img pc-img-hoverable" @click="openProductDetail(p)" style="cursor:pointer">
-              <img v-if="p.image_url" :src="p.image_url" :alt="p.name" loading="lazy">
+              <img v-if="p.image_url" :src="p.image_url" :alt="p.name" loading="lazy" style="width:100%;height:100%;object-fit:cover">
               <div class="pc-hover-overlay"><i class="fas fa-expand-alt"></i><span>View details</span></div>
-              <div v-if="!p.image_url" class="pc-img-ph"><i class="fas fa-image" style="color:var(--tx-3)"></i><span>No image</span></div>
+              <div v-if="!p.image_url" class="pc-img-ph"><i class="fas fa-image" style="color:var(--tx-3)"></i><span>No image — click to edit</span></div>
               <div class="pc-img-badges">
                 <span class="badge" :class="p.is_active?'b-ok':'b-mu'" style="font-size:8px;backdrop-filter:blur(8px)">{{  p.is_active?'Live':'Draft'  }}</span>
               </div>
@@ -996,14 +1100,23 @@
               <div class="pc-name" @click="openProductDetail(p)" style="cursor:pointer">{{  p.name  }}</div>
               <div class="pc-loc"><i class="fas fa-location-dot" style="font-size:8px"></i>{{  p.country||'Tanzania'  }}</div>
               <div class="pc-pr-row">
-                <div><div class="pc-price">${{  fNum(p.base_price_usd)  }}</div><div class="pc-price-sub">Stock: {{  p.stock_quantity||0  }} units</div></div>
+                <div><div class="pc-price">${{  fNum(p.base_price_usd)  }}</div>
+                  <div class="pc-price-sub" style="display:flex;align-items:center;gap:4px">
+                    Stock:
+                    <input type="number" :value="p.stock_quantity||0" min="0"
+                      @change="updateStockQty(p, $event.target.value)"
+                      style="width:50px;padding:1px 4px;font-size:10px;border:1px solid var(--ln-2);border-radius:4px;font-family:var(--fm);background:var(--bg-1);color:var(--tx-1)"
+                      @click.stop title="Edit stock quantity">
+                    units
+                  </div>
+                </div>
                 <span :class="['pc-stock',stockClass(p.stock_quantity)]">{{  stockLabel(p.stock_quantity)  }}</span>
               </div>
               <div class="pc-actions">
                 <button @click="openListingModal(p)" class="btn btn-p btn-sm" style="flex:1"><i class="fas fa-pen"></i>Edit</button>
-                <button @click="openProductDetail(p)" class="btn btn-g btn-xs btn-sq" title="Preview as buyer"><i class="fas fa-eye" style="font-size:10px"></i></button>
+                <button @click="openProductDetail(p)" class="btn btn-g btn-xs btn-sq" title="Preview as buyer" aria-label="Preview as buyer"><i class="fas fa-eye" style="font-size:10px"></i></button>
                 <button @click="toggleListingStatus(p)" class="btn btn-s btn-xs btn-sq" :title="p.is_active?'Hide listing':'Activate listing'"><i :class="p.is_active?'fas fa-eye-slash':'fas fa-circle-check'" style="font-size:10px"></i></button>
-                <button @click="askDeleteProduct(p)" class="btn btn-d btn-xs btn-sq" title="Delete listing"><i class="fas fa-trash" style="font-size:10px"></i></button>
+                <button @click="askDeleteProduct(p)" class="btn btn-d btn-xs btn-sq" title="Delete listing" aria-label="Delete listing"><i class="fas fa-trash" style="font-size:10px"></i></button>
               </div>
             </div>
           </div>
@@ -1018,6 +1131,7 @@
         <div v-for="r in incomingReqs" :key="r.id" class="req-card fu fu-1">
           <div class="req-hd">
             <span class="req-num">{{  r.request_number  }}</span>
+            <button @click.stop="navigator.clipboard.writeText(r.request_number).then(()=>toast('ok','Copied!',r.request_number))" class="btn btn-g btn-xs" style="padding:2px 7px;font-size:9px" title="Copy reference number" aria-label="Copy reference number"><i class="fas fa-copy" style="font-size:9px"></i></button>
             <div style="display:flex;gap:var(--s2);align-items:center">
               <span class="badge" :class="sBadge(r.status)">{{  fStatus(r.status)  }}</span>
               <span style="font-size:var(--txs);color:var(--tx-3)">{{  fDate(r.created_at)  }}</span>
@@ -1047,9 +1161,36 @@
             <button @click="fetchTracking" class="btn btn-p"><i class="fas fa-search"></i>Track</button>
           </div>
         </div>
+        <!-- Empty state with quick links -->
+        <div v-if="!trackedReq && !trackId && profile && myRequests.length" class="fu fu-2" style="margin-top:0">
+          <div style="font-size:11px;font-weight:700;color:var(--tx-4);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:var(--s2)">Your recent orders</div>
+          <div v-for="r in myRequests.slice(0,5)" :key="r.id"
+            @click="trackId=r.request_number;fetchTracking()"
+            style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg-1);border:1px solid var(--ln-2);border-radius:8px;cursor:pointer;margin-bottom:8px;transition:border-color 0.15s"
+            onmouseover="this.style.borderColor='var(--philips)'" onmouseout="this.style.borderColor='var(--ln-2)'">
+            <div style="width:8px;height:8px;border-radius:50%;flex-shrink:0" :style="{background:statusList.find(s=>s.val===r.status)?.color||'#888'}"></div>
+            <div style="flex:1">
+              <div style="font-size:var(--tsm);font-weight:600;color:var(--tx-1);font-family:var(--fm)">{{ r.request_number }}</div>
+              <div style="font-size:var(--txs);color:var(--tx-3)">{{ fStatus(r.status) }} · {{ fDate(r.created_at) }}</div>
+            </div>
+            <i class="fas fa-chevron-right" style="color:var(--tx-4);font-size:10px"></i>
+          </div>
+        </div>
+        <div v-if="!trackedReq && !trackId && !profile" class="empty fu fu-2" style="padding:var(--s5) 0">
+          <div class="empty-ico"><i class="fas fa-location-dot"></i></div>
+          <div class="empty-ttl">Track your shipment</div>
+          <div class="empty-sub">Enter a request number above (e.g. <strong>TML-2026-ABC123</strong>), or <span @click="showAuth=true" style="color:var(--a);cursor:pointer;text-decoration:underline">sign in</span> to see your orders.</div>
+          <button @click="showAuth=true" class="btn btn-p" style="margin-top:var(--s3)"><i class="fas fa-sign-in-alt"></i>Sign In to See My Orders</button>
+        </div>
+        <div v-if="!trackedReq && !trackId && profile && !myRequests.length" class="empty fu fu-2" style="padding:var(--s5) 0">
+          <div class="empty-ico"><i class="fas fa-location-dot"></i></div>
+          <div class="empty-ttl">No orders yet</div>
+          <div class="empty-sub">You haven't placed any orders. Browse products and submit a request to get started.</div>
+          <button @click="goTab('browse')" class="btn btn-p" style="margin-top:var(--s3)"><i class="fas fa-magnifying-glass"></i>Browse Products</button>
+        </div>
         <div v-if="trackedReq" class="fu fu-2">
           <div class="req-card">
-            <div class="req-hd"><span class="req-num">{{  trackedReq.request_number  }}</span><span class="badge" :class="sBadge(trackedReq.status)">{{  fStatus(trackedReq.status)  }}</span></div>
+            <div class="req-hd"><span class="req-num">{{  trackedReq.request_number  }}</span><button @click.stop="navigator.clipboard.writeText(trackedReq.request_number).then(()=>toast('ok','Copied!',trackedReq.request_number))" class="btn btn-g btn-xs" style="padding:2px 7px;font-size:9px"><i class="fas fa-copy" style="font-size:9px"></i></button><span class="badge" :class="sBadge(trackedReq.status)">{{  fStatus(trackedReq.status)  }}</span></div>
             <div class="stepper"><div v-for="(st,idx) in stepperStages" :key="st.val" class="step" :class="stepCls(trackedReq.status,idx)"><div class="step-dot"><i class="fas fa-check" style="font-size:5px"></i></div><div class="step-lbl">{{  st.short  }}</div></div></div>
             <div class="req-fin">
               <div class="fin-c"><div class="fin-l">Total</div><div class="fin-v">{{  tzs(trackedReq.total_cost)  }}</div></div>
@@ -1074,20 +1215,30 @@
       </div>
       <!-- /TRACKING -->
 
-      <!-- ── PAYMENTS ── -->
+      <!-- ── PAYMENTS (buyer view) ── -->
       <div v-if="tab==='payments' && profile">
         <div class="sect-hd fu"><div><div class="sect-ttl">Payment History</div><div class="sect-sub">{{  payments.length  }} records</div></div></div>
+        <div v-if="payments.filter(p=>p.status==='pending').length" class="pmt-pending-banner fu fu-1">
+          <i class="fas fa-clock" style="color:var(--warn);flex-shrink:0;font-size:18px;margin-top:2px"></i>
+          <div>
+            <div style="font-size:var(--tsm);font-weight:700;color:var(--warn)">{{ payments.filter(p=>p.status==='pending').length }} payment(s) awaiting confirmation</div>
+            <div style="font-size:var(--txs);color:var(--tx-2);margin-top:2px;line-height:1.6">Your payment has been submitted and is awaiting verification by our team. This usually takes 1–2 business days. If you need urgent confirmation, <a href="https://wa.me/34659447627" target="_blank" style="color:var(--philips);font-weight:600">contact support on WhatsApp →</a></div>
+          </div>
+        </div>
         <div v-if="myBalanceDue>0" class="info-strip wn fu fu-1"><i class="fas fa-clock" style="color:var(--warn);flex-shrink:0"></i><div style="flex:1"><div style="font-size:var(--tsm);font-weight:600;color:var(--warn)">Outstanding balance: {{  tzs(myBalanceDue)  }}</div><div style="font-size:var(--txs);color:var(--tx-2);margin-top:2px">{{  pendingPayCount  }} request(s) with pending payments</div></div><button @click="goTab('my-requests')" class="btn btn-p btn-sm">Pay Now</button></div>
         <div class="tbl-w fu fu-2">
           <table class="tbl">
             <thead><tr><th>Request #</th><th>Method</th><th>Type</th><th>Amount</th><th>Status</th><th>Date</th><th>Reference</th></tr></thead>
             <tbody>
-              <tr v-for="p in payments" :key="p.id">
+              <tr v-for="p in payments" :key="p.id" style="cursor:pointer" @click="openDetailModal(allRequests.find(r=>r.id===p.request_id))" :title="'View request details'">
                 <td><span class="mono">{{  allRequests.find(r=>r.id===p.request_id)?.request_number||p.request_id?.slice(0,8)  }}</span></td>
                 <td style="text-transform:capitalize">{{  p.payment_method?.replace(/_/g,' ')||'--'  }}</td>
                 <td style="text-transform:capitalize">{{  p.payment_type||'--'  }}</td>
                 <td><span style="font-family:var(--fm);font-size:11px;color:var(--tx-1)">{{  tzs(p.amount)  }}</span></td>
-                <td><span class="badge" :class="p.status==='completed'?'b-ok':p.status==='pending'?'b-wn':'b-er'">{{  p.status  }}</span></td>
+                <td>
+                  <span class="badge" :class="p.status==='completed'?'b-ok':p.status==='pending'?'b-wn':'b-er'">{{  p.status  }}</span>
+                  <div v-if="p.status==='pending'" style="font-size:9px;color:var(--warn);margin-top:2px"><i class="fas fa-clock" style="font-size:8px"></i> Awaiting confirmation</div>
+                </td>
                 <td style="font-size:var(--txs)">{{  fDate(p.payment_date||p.created_at)  }}</td>
                 <td><span class="mono">{{  p.mpesa_reference||'--'  }}</span></td>
               </tr>
@@ -1325,13 +1476,13 @@
           <div class="triage-hd"><i class="fas fa-bell" style="color:var(--warn)"></i> Needs your attention</div>
           <div class="triage-items">
             <div v-if="adminTriage.pendingPayments?.length" class="triage-item ti-warn"
-              @click="adminSubTab='requests';adminReqFilter='pending'">
+              @click="adminSubTab='payments'">
               <i class="fas fa-credit-card"></i>
               <div><strong>{{  adminTriage.pendingPayments?.length  }}</strong> payment{{  adminTriage.pendingPayments?.length>1?'s':''  }} to verify</div>
               <i class="fas fa-chevron-right" style="margin-left:auto;font-size:9px;opacity:0.5"></i>
             </div>
             <div v-if="adminTriage.awaitingQuote?.length" class="triage-item ti-info"
-              @click="adminSubTab='requests';adminReqFilter='pending'">
+              @click="adminSubTab='requests';adminReqFilter='pending';adminReqSearch=''">
               <i class="fas fa-file-invoice-dollar"></i>
               <div><strong>{{  adminTriage.awaitingQuote?.length  }}</strong> request{{  adminTriage.awaitingQuote?.length>1?'s':''  }} awaiting quote</div>
               <i class="fas fa-chevron-right" style="margin-left:auto;font-size:9px;opacity:0.5"></i>
@@ -1343,7 +1494,7 @@
               <i class="fas fa-chevron-right" style="margin-left:auto;font-size:9px;opacity:0.5"></i>
             </div>
             <div v-if="adminTriage.stalled?.length" class="triage-item ti-err"
-              @click="adminSubTab='requests'">
+              @click="adminSubTab='requests';adminReqFilter='all';adminReqSearch=''">
               <i class="fas fa-triangle-exclamation"></i>
               <div><strong>{{  adminTriage.stalled?.length  }}</strong> request{{  adminTriage.stalled?.length>1?'s':''  }} stalled 3+ days</div>
               <i class="fas fa-chevron-right" style="margin-left:auto;font-size:9px;opacity:0.5"></i>
@@ -1358,6 +1509,29 @@
           <div class="kpi"><div class="kpi-ico"><i class="fas fa-clipboard-list"></i></div><div class="kpi-lbl">All Requests</div><div class="kpi-val">{{  allRequests.length  }}</div><div class="kpi-sub" :class="pendingAdminCount?'wn':''">{{  pendingAdminCount  }} pending</div></div>
           <div class="kpi"><div class="kpi-ico"><i class="fas fa-coins"></i></div><div class="kpi-lbl">Platform GMV</div><div class="kpi-val xs ac">{{  tzs(allRequests.reduce((s,r)=>s+(r.total_cost||0),0))  }}</div><div class="kpi-sub">All time</div></div>
         </div>
+        <!-- Admin summary strip -->
+        <div class="fu fu-1" style="display:flex;gap:var(--s3);margin-bottom:var(--s4);flex-wrap:wrap">
+          <div class="card-sm" style="flex:1;min-width:120px;display:flex;align-items:center;gap:10px;cursor:pointer" @click="adminSubTab='requests';adminReqFilter='all'" title="View all requests">
+            <div style="width:32px;height:32px;border-radius:var(--r2);background:var(--philips-l);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fas fa-clipboard-list" style="color:var(--philips);font-size:12px"></i></div>
+            <div><div style="font-size:18px;font-weight:700;font-family:var(--fm);color:var(--tx-1)">{{ allRequests.length }}</div><div style="font-size:10px;color:var(--tx-3)">Total requests</div></div>
+          </div>
+          <div class="card-sm" style="flex:1;min-width:120px;display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;border-radius:var(--r2);background:var(--warn-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fas fa-clock" style="color:var(--warn);font-size:12px"></i></div>
+            <div><div style="font-size:18px;font-weight:700;font-family:var(--fm);color:var(--warn)">{{ allRequests.filter(r=>r.status==='pending').length }}</div><div style="font-size:10px;color:var(--tx-3)">Pending review</div></div>
+          </div>
+          <div class="card-sm" style="flex:1;min-width:120px;display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;border-radius:var(--r2);background:var(--warn-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fas fa-credit-card" style="color:var(--warn);font-size:12px"></i></div>
+            <div><div style="font-size:18px;font-weight:700;font-family:var(--fm);color:var(--warn)">{{ payments.filter(p=>p.status==='pending').length }}</div><div style="font-size:10px;color:var(--tx-3)">Payments to confirm</div></div>
+          </div>
+          <div class="card-sm" style="flex:1;min-width:120px;display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;border-radius:var(--r2);background:var(--ok-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fas fa-users" style="color:var(--ok);font-size:12px"></i></div>
+            <div><div style="font-size:18px;font-weight:700;font-family:var(--fm);color:var(--tx-1)">{{ adminUsers.length }}</div><div style="font-size:10px;color:var(--tx-3)">Registered users</div></div>
+          </div>
+          <div class="card-sm" style="flex:1;min-width:120px;display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;border-radius:var(--r2);background:var(--ok-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fas fa-coins" style="color:var(--ok);font-size:12px"></i></div>
+            <div><div style="font-size:14px;font-weight:700;font-family:var(--fm);color:var(--ok)">{{ tzs(allRequests.reduce((s,r)=>s+(r.deposit_paid||0),0)) }}</div><div style="font-size:10px;color:var(--tx-3)">Total collected</div></div>
+          </div>
+        </div>
         <!-- Sub tabs -->
         <div style="display:flex;gap:var(--s2);margin-bottom:var(--s3);flex-wrap:wrap" class="fu fu-1">
           <button v-for="st in [{v:'requests',l:'All Requests',i:'fa-clipboard-list'},{v:'payments',l:'Payments',i:'fa-credit-card'},{v:'users',l:'Users',i:'fa-users'},{v:'products',l:'Products',i:'fa-boxes-stacked'}]" :key="st.v"
@@ -1369,7 +1543,7 @@
         <!-- Requests table -->
         <div v-if="adminSubTab==='requests'" class="fu fu-2">
           <div style="display:flex;gap:var(--s2);margin-bottom:var(--s3);flex-wrap:wrap">
-            <input type="text" v-model="adminReqSearch" placeholder="Search request number…" class="inp" style="max-width:240px;border-radius:var(--rp)">
+            <input type="text" v-model="adminReqSearch" placeholder="Search request # or buyer name…" class="inp" style="max-width:260px;border-radius:var(--rp)">
             <select v-model="adminReqFilter" class="sel" style="width:140px;border-radius:var(--rp)"><option value="all">All Statuses</option><option v-for="s in statusList" :key="s.val" :value="s.val">{{  s.label  }}</option></select>
             <select v-model="adminPlatFilter" class="sel" style="width:140px;border-radius:var(--rp)"><option value="all">All Platforms</option><option value="techmedix">TechMedixLink</option><option value="globaldoor">GlobalDoor</option></select>
           </div>
@@ -1394,7 +1568,10 @@
                   </td>
                   <td><span style="font-family:var(--fm);font-size:11px">{{  tzs(r.total_cost)  }}</span></td>
                   <td><span style="font-family:var(--fm);font-size:11px" :style="(r.balance_due||0)>0?'color:var(--warn)':''">{{  tzs(r.balance_due)  }}</span></td>
-                  <td style="font-size:var(--txs)">{{  fDate(r.created_at)  }}</td>
+                  <td style="font-size:var(--txs)">
+                    <div>{{  fDate(r.created_at)  }}</div>
+                    <div v-if="r.items?.length" style="font-size:9px;color:var(--tx-3);margin-top:1px">{{  r.items[0]?.product_name  }}{{ r.items.length>1?' +'+( r.items.length-1)+' more':'' }}</div>
+                  </td>
                   <td>
                     <div style="display:flex;gap:3px">
                       <button @click="openDetailModal(r)" class="btn btn-g btn-xs btn-sq" title="View"><i class="fas fa-eye" style="font-size:9px"></i></button>
@@ -1421,6 +1598,16 @@
         </div>
         <!-- Payments table -->
         <div v-if="adminSubTab==='payments'" class="fu fu-2">
+          <div style="display:flex;gap:var(--s3);margin-bottom:var(--s3);flex-wrap:wrap">
+            <div class="card-sm" style="flex:1;min-width:120px;display:flex;align-items:center;gap:10px">
+              <div style="width:28px;height:28px;border-radius:var(--r2);background:var(--ok-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fas fa-check-circle" style="color:var(--ok);font-size:11px"></i></div>
+              <div><div style="font-size:14px;font-weight:700;font-family:var(--fm);color:var(--ok)">{{ tzs(payments.filter(p=>p.status==='completed').reduce((s,p)=>s+(p.amount||0),0)) }}</div><div style="font-size:10px;color:var(--tx-3)">Confirmed revenue</div></div>
+            </div>
+            <div class="card-sm" style="flex:1;min-width:120px;display:flex;align-items:center;gap:10px">
+              <div style="width:28px;height:28px;border-radius:var(--r2);background:var(--warn-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fas fa-clock" style="color:var(--warn);font-size:11px"></i></div>
+              <div><div style="font-size:14px;font-weight:700;font-family:var(--fm);color:var(--warn)">{{ tzs(payments.filter(p=>p.status==='pending').reduce((s,p)=>s+(p.amount||0),0)) }}</div><div style="font-size:10px;color:var(--tx-3)">Pending {{ payments.filter(p=>p.status==='pending').length }} payments</div></div>
+            </div>
+          </div>
           <div class="tbl-w">
             <table class="tbl">
               <thead><tr><th>Request #</th><th>Buyer</th><th>Amount</th><th>Method</th><th>Reference</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
@@ -1452,7 +1639,7 @@
         <div v-if="adminSubTab==='users'" class="fu fu-2">
           <div class="tbl-w">
             <table class="tbl">
-              <thead><tr><th>User</th><th>Role</th><th>Type</th><th>Verified</th><th>Joined</th><th>Actions</th></tr></thead>
+              <thead><tr><th>User</th><th>Role</th><th>Type</th><th>Verified</th><th>Joined</th><th>Orders</th><th>Actions</th></tr></thead>
               <tbody>
                 <tr v-for="u in adminUsers" :key="u.id">
                   <td><div style="font-size:var(--tsm);font-weight:600;color:var(--tx-1)">{{  u.full_name  }}</div><div style="font-size:10px;color:var(--tx-3)">{{  u.email  }}</div></td>
@@ -1468,6 +1655,7 @@
                     </button>
                   </td>
                   <td style="font-size:var(--txs)">{{  fDate(u.created_at)  }}</td>
+                  <td style="font-family:var(--fm);font-size:11px;text-align:center">{{  allRequests.filter(r=>r.user_id===u.id).length  }}</td>
                   <td><div style="display:flex;gap:3px"><button @click="adminEditUser(u)" class="btn btn-g btn-xs btn-sq"><i class="fas fa-pen" style="font-size:9px"></i></button><button @click="adminToggleUserRole(u)" class="btn btn-s btn-xs btn-sq"><i class="fas fa-user-gear" style="font-size:9px"></i></button></div></td>
                 </tr>
               </tbody>
@@ -1482,12 +1670,16 @@
         </div>
         <!-- Products table -->
         <div v-if="adminSubTab==='products'" class="fu fu-2">
+          <div class="tbl-search-row">
+            <input type="text" v-model="adminProdSearch" placeholder="Search products by name or manufacturer…" class="inp" style="max-width:320px;border-radius:var(--rp)">
+            <button v-if="adminProdSearch" @click="adminProdSearch=''" class="btn btn-g btn-sm"><i class="fas fa-times"></i>Clear</button>
+          </div>
           <div class="tbl-w">
             <table class="tbl">
               <thead><tr><th>Product</th><th>Platform</th><th>Price (USD)</th><th>Stock</th><th>TMDA</th><th>Status</th><th>Seller</th><th>Actions</th></tr></thead>
               <tbody>
-                <tr v-for="p in products" :key="p.id">
-                  <td><div style="font-size:var(--tsm);font-weight:600;color:var(--tx-1)">{{  p.name  }}</div><div style="font-size:10px;color:var(--tx-3)">{{  p.manufacturer||'--'  }}</div></td>
+                <tr v-for="p in filteredAdminProds" :key="p.id">
+                  <td style="max-width:200px"><div style="font-size:var(--tsm);font-weight:600;color:var(--tx-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" :title="p.name">{{  p.name  }}</div><div style="font-size:10px;color:var(--tx-3)">{{  p.manufacturer||'--'  }}</div></td>
                   <td><span class="badge" :class="p.platform_type==='techmedix'?'b-tm':'b-gd'" style="font-size:9px">{{  p.platform_type==='techmedix'?'TML':'GD'  }}</span></td>
                   <td><span style="font-family:var(--fm);font-size:11px">${{  fNum(p.base_price_usd)  }}</span></td>
                   <td><span :class="['pc-stock',stockClass(p.stock_quantity)]">{{  p.stock_quantity||0  }}</span></td>
@@ -1542,7 +1734,7 @@
             <div class="kpi"><div class="kpi-ico"><i class="fas fa-store"></i></div><div class="kpi-lbl">Live Listings</div><div class="kpi-val">{{  myListings.filter(p=>p.is_active).length  }}</div><div class="kpi-sub">{{  myListings.length  }} total</div></div>
             <div class="kpi"><div class="kpi-ico"><i class="fas fa-inbox"></i></div><div class="kpi-lbl">Total Inquiries</div><div class="kpi-val">{{  sellerAnalytics.totalInquiries||0  }}</div><div class="kpi-sub" :class="sellerAnalytics.totalInquiries?'up':''">All time</div></div>
             <div class="kpi"><div class="kpi-ico" style="background:var(--ok-bg);color:var(--ok)"><i class="fas fa-percent"></i></div><div class="kpi-lbl">Conversion Rate</div><div class="kpi-val sm" :class="(sellerAnalytics.conversionRate||0)>20?'ok':'wn'">{{  sellerAnalytics.conversionRate||0  }}%</div><div class="kpi-sub">Inquiry → order</div></div>
-            <div class="kpi"><div class="kpi-ico" style="background:var(--ok-bg);color:var(--ok)"><i class="fas fa-coins"></i></div><div class="kpi-lbl">Est. Revenue</div><div class="kpi-val xs ac">{{  tzs(sellerAnalytics.totalRevenue||0)  }}</div><div class="kpi-sub">Confirmed orders</div></div>
+            <div class="kpi" style="cursor:pointer" @click="goTab('seller-analytics')"><div class="kpi-ico" style="background:var(--ok-bg);color:var(--ok)"><i class="fas fa-coins"></i></div><div class="kpi-lbl">Total Revenue</div><div class="kpi-val xs ac" style="color:var(--ok)">{{  tzs(sellerAnalytics.totalRevenueTzs||0)  }}</div><div class="kpi-sub up">{{ sellerAnalytics.converted||0 }} orders fulfilled</div></div>
             <div class="kpi"><div class="kpi-ico" style="background:rgba(240,165,0,0.1);color:#f0a500"><i class="fas fa-star"></i></div><div class="kpi-lbl">Avg Rating</div><div class="kpi-val sm" :class="parseFloat(sellerAnalytics.avgRating)>=4?'ok':'wn'">{{  sellerAnalytics.avgRating||'--'  }}</div><div class="kpi-sub">{{  sellerAnalytics.totalReviews||0  }} reviews</div></div>
           </div>
           <!-- Per-product breakdown -->
@@ -1724,13 +1916,27 @@
 
 <!-- REQUEST MODAL -->
 <transition name="modal">
-  <div v-if="showReqModal" class="modal-bg" @click.self="showReqModal=false">
+  <div v-if="showReqModal" class="modal-bg" @click.self="rF.product_id||rF.custom_name||rF.source_url ? (confirm={title:'Discard request?',msg:'You have unsaved changes. Close anyway?',tone:'wn',icon:'fas fa-exclamation-triangle',ok_lbl:'Discard',ok:()=>{showReqModal=false;Object.assign(rF,{platform_type:'techmedix',product_id:'',quantity:1,urgency:'normal',notes:'',source_type:'catalog',address_id:'',custom_name:'',custom_desc:'',source_url:''})}}) : (showReqModal=false)">
     <div class="modal modal-lg">
       <div class="modal-hd"><div><div class="modal-ttl">New Purchase Request</div><div class="modal-sub">Submit a sourcing or purchase request</div></div><button class="modal-x" @click="showReqModal=false"><i class="fas fa-times"></i></button></div>
       <div class="modal-body">
         <div class="fr2">
-          <div class="fg"><label class="lbl req">Platform</label><select v-model="rF.platform_type" class="sel"><option value="techmedix">TechMedixLink (Medical)</option><option value="globaldoor">GlobalDoor (International)</option></select></div>
-          <div class="fg"><label class="lbl req">Urgency</label><select v-model="rF.urgency" class="sel"><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+          <div class="fg"><label class="lbl req">Platform</label>
+            <select v-model="rF.platform_type" class="sel">
+              <option value="techmedix">TechMedixLink — Local Tanzania stock, faster delivery</option>
+              <option value="globaldoor">GlobalDoor — International sourcing, wider selection</option>
+            </select>
+            <div class="hint"><i class="fas fa-info-circle"></i> TechMedixLink for local/urgent orders. GlobalDoor for specialist or imported equipment.</div>
+          </div>
+          <div class="fg"><label class="lbl req">Urgency</label>
+          <select v-model="rF.urgency" class="sel">
+            <option value="low">Low — flexible timeline (14–30 days)</option>
+            <option value="normal">Normal — standard delivery (7–14 days)</option>
+            <option value="high">High — expedited (3–7 days, +15% fee)</option>
+            <option value="critical">Critical / Emergency (24–72h, +30% fee)</option>
+          </select>
+          <div class="hint"><i class="fas fa-info-circle"></i> Urgent orders may have additional sourcing and shipping fees reflected in your quote.</div>
+        </div>
         </div>
         <!-- Request type switcher -->
         <div class="fg">
@@ -1760,7 +1966,7 @@
         <!-- MANUAL / CUSTOM path -->
         <template v-if="rF.source_type==='manual'">
           <div class="info-strip in" style="margin-top:0"><i class="fas fa-lightbulb" style="color:var(--info);flex-shrink:0"></i><div style="font-size:var(--txs);color:var(--info);line-height:1.5">Describe the item you need. Our team will source it and send you a quote within 24 hours.</div></div>
-          <div class="fg"><label class="lbl req">Product / Item Name</label><input type="text" v-model="rF.custom_name" class="inp" placeholder="e.g. Philips Ultrasound HD11 XE, Surgical gloves size M, ECG Machine"></div>
+          <div class="fg"><label class="lbl req">Product / Item Name</label><input type="text" v-model="rF.custom_name" class="inp" maxlength="200" placeholder="e.g. Philips Ultrasound HD11 XE, Surgical gloves size M, ECG Machine"></div>
           <div class="fg"><label class="lbl req">Detailed Description &amp; Specifications</label><textarea v-model="rF.custom_desc" class="tex" placeholder="Brand, model number, technical specs, colour, size, quantity, any specific requirements…"></textarea></div>
         </template>
         <!-- LINK path -->
@@ -1770,13 +1976,28 @@
           <div class="fg"><label class="lbl">Additional Notes</label><textarea v-model="rF.custom_desc" class="tex" style="min-height:60px" placeholder="Quantity, variant (colour/size), any specific requirements…"></textarea></div>
         </template>
         <div class="fg"><label class="lbl req">Quantity</label><input type="number" v-model.number="rF.quantity" min="1" class="inp" style="max-width:160px"></div>
-        <!-- Address picker -->
-        <div v-if="addresses.length" class="fg">
+        <!-- Address picker (item 87) -->
+        <div class="fg">
           <label class="lbl">Delivery Address</label>
+          <div v-if="!addresses.length" class="info-strip wn" style="margin-bottom:var(--s2)">
+            <i class="fas fa-map-pin" style="color:var(--warn);flex-shrink:0"></i>
+            <div style="font-size:var(--txs);color:var(--warn)">No saved addresses — add one below or enter in the notes field.</div>
+          </div>
           <div v-for="addr in addresses" :key="addr.id" class="addr-card" :class="{sel:rF.address_id===addr.id}" @click="rF.address_id=addr.id">
             <div class="addr-ico"><i :class="addr.address_type==='clinic'?'fas fa-hospital':addr.address_type==='work'?'fas fa-building':addr.address_type==='warehouse'?'fas fa-warehouse':'fas fa-home'"></i></div>
             <div style="flex:1"><div style="font-size:var(--tsm);font-weight:600;color:var(--tx-1);text-transform:capitalize">{{  addr.address_type||'Address'  }}</div><div style="font-size:var(--txs);color:var(--tx-3)">{{  [addr.street, addr.district, addr.region].filter(Boolean).join(', ')  }}</div></div>
             <i v-if="rF.address_id===addr.id" class="fas fa-check-circle" style="color:var(--ok);margin-left:auto;flex-shrink:0"></i>
+          </div>
+          <button @click="addingAddress=!addingAddress" class="btn btn-g btn-xs" style="margin-top:var(--s2)">
+            <i class="fas fa-plus"></i>{{ addingAddress ? 'Cancel' : '+ Add new address' }}
+          </button>
+          <div v-if="addingAddress" class="add-address-inline" style="margin-top:var(--s2)">
+            <div class="fr2" style="margin-bottom:var(--s2)">
+              <div class="fg"><label class="lbl req">Region</label><input type="text" v-model="addrF.region" class="inp" placeholder="e.g. Dar es Salaam"></div>
+              <div class="fg"><label class="lbl">District</label><input type="text" v-model="addrF.district" class="inp" placeholder="e.g. Ilala"></div>
+            </div>
+            <div class="fg" style="margin-bottom:var(--s2)"><label class="lbl">Street / Road</label><input type="text" v-model="addrF.street" class="inp" placeholder="e.g. Samora Avenue"></div>
+            <button @click="saveAddress().then(()=>{ rF.address_id=addresses[addresses.length-1]?.id||''; addingAddress=false })" class="btn btn-ok btn-sm" :disabled="!addrF.region"><i class="fas fa-check"></i>Save & Select</button>
           </div>
         </div>
         <div class="fg"><label class="lbl">Delivery Notes / Specifications</label><textarea v-model="rF.notes" class="tex" placeholder="Delivery address, special requirements, product specifications…"></textarea></div>
@@ -1965,7 +2186,14 @@
         </div>
         <div class="fg"><label class="lbl">Description / Specifications</label><textarea v-model="pF.description" class="tex" placeholder="Detailed description, technical specifications, model numbers…"></textarea></div>
         <div class="fr3">
-          <div class="fg"><label class="lbl req">Price (USD)</label><input type="number" v-model.number="pF.base_price_usd" min="0" step="0.01" class="inp" placeholder="0.00"></div>
+          <div class="fg"><label class="lbl req">Price (USD)</label>
+            <input type="number" v-model.number="pF.base_price_usd" min="0" step="0.01" class="inp" placeholder="0.00">
+            <div v-if="pF.base_price_usd>0" class="price-preview-box">
+              <i class="fas fa-eye" style="flex-shrink:0"></i>
+              Buyer sees approx: <strong>{{ tzs(Math.round(pF.base_price_usd * usdToTzs)) }}</strong>
+              <span style="font-size:9px;color:var(--tx-3)">+ shipping & service fee in quote</span>
+            </div>
+          </div>
           <div class="fg"><label class="lbl req">Stock Quantity</label><input type="number" v-model.number="pF.stock_quantity" min="0" class="inp" placeholder="0"></div>
           <div class="fg"><label class="lbl">Warranty (months)</label><input type="number" v-model.number="pF.warranty_months" min="0" class="inp" placeholder="12"></div>
         </div>
@@ -2405,7 +2633,7 @@
           <p style="margin-bottom:var(--s3)"><strong>Data We Collect.</strong> We collect your name, email, phone number, organisation details, and transaction history necessary to operate the platform. We do not sell your personal data to third parties.</p>
           <p style="margin-bottom:var(--s3)"><strong>Data Use.</strong> Your data is used to process orders, send status notifications, verify seller credentials, and improve platform services.</p>
           <p style="margin-bottom:var(--s3)"><strong>Data Storage.</strong> Data is stored securely on Supabase infrastructure hosted in the European Union. We comply with Tanzania's Electronic and Postal Communications Act requirements.</p>
-          <p><strong>Your Rights.</strong> You may request deletion of your account and associated data by contacting <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f0838580809f8284b0849593989d959499889c999e9bde939fde848a">[email&#160;protected]</a>. Certain transaction records may be retained for legal compliance purposes.</p>
+          <p><strong>Your Rights.</strong> You may request deletion of your account and associated data by contacting <a href="mailto:support@techmedixlink.co.tz" style="color:var(--philips)">support@techmedixlink.co.tz</a>. Certain transaction records may be retained for legal compliance purposes.</p>
         </div>
       </div>
       <div class="modal-ft">
@@ -2544,7 +2772,7 @@
 
           <!-- Description -->
           <div class="pd-section-ttl">About this product</div>
-          <div class="pd-desc">{{  viewedProduct.description||'High quality medical equipment. Contact us for full specifications and compliance documentation.'  }}</div>
+          <div v-if="viewedProduct.description" class="pd-desc">{{  viewedProduct.description  }}</div><div v-else class="pd-desc" style="color:var(--tx-4);font-style:italic">No description provided for this product.</div>
 
           <!-- Specs grid -->
           <div class="pd-section-ttl">Specifications</div>
@@ -2610,7 +2838,7 @@
           </div>
 
           <!-- CTA buttons -->
-          <button v-if="canBuy" @click="quickRequest(viewedProduct);showProductDetail=false" class="btn btn-p" style="width:100%;margin-bottom:var(--s2)" :disabled="!viewedProduct.is_active||!(viewedProduct.stock_quantity>0)">
+          <button v-if="canBuy" @click="quickRequest(viewedProduct);showProductDetail=false" class="btn btn-p" style="width:100%;margin-bottom:var(--s2)" :disabled="!viewedProduct.is_active">
             <i class="fas fa-cart-plus"></i>Request This Product
           </button>
           <button v-if="!profile" @click="showAuth=true;showProductDetail=false" class="btn btn-p" style="width:100%;margin-bottom:var(--s2)">
@@ -2632,7 +2860,9 @@
           <!-- Share / track -->
           <div style="display:flex;gap:var(--s2);margin-top:var(--s3)">
             <button @click="showProductDetail=false;goTab('browse')" class="btn btn-g btn-sm" style="flex:1"><i class="fas fa-arrow-left"></i>Back</button>
-            <button v-if="canBuy" @click="showReqModal=true;rF.source_type='manual';rF.custom_name=viewedProduct.name;showProductDetail=false" class="btn btn-s btn-sm" style="flex:1" title="Custom request for this product"><i class="fas fa-pen"></i>Custom</button>
+            <button v-if="canBuy" @click="addToBasket(viewedProduct)" class="btn btn-s btn-sm btn-sq" title="Save to basket for later"><i class="fas fa-basket-shopping" style="font-size:11px"></i></button>
+            <button v-if="canBuy" @click="showReqModal=true;rF.source_type='manual';rF.custom_name=viewedProduct.name;showProductDetail=false" class="btn btn-s btn-sm" style="flex:1" title="Custom request"><i class="fas fa-pen"></i>Custom</button>
+            <a :href="'https://wa.me/?text='+encodeURIComponent('Check out '+viewedProduct.name+' on TechMedixLink: $'+Math.round(viewedProduct.base_price_usd)+' USD — '+window.location.href)" target="_blank" class="btn btn-g btn-sm btn-sq" title="Share on WhatsApp" style="background:rgba(37,211,102,0.1);border-color:rgba(37,211,102,0.3);color:#1a8a3a"><i class="fab fa-whatsapp" style="font-size:14px"></i></a>
           </div>
         </div>
 
@@ -2733,6 +2963,11 @@
           <i class="fas fa-basket-shopping" style="font-size:32px;margin-bottom:var(--s3);display:block;opacity:0.3"></i>
           Basket is empty. Browse products and add items.
         </div>
+        <div v-if="basketRestored" class="basket-restore-banner">
+          <i class="fas fa-rotate-left" style="color:var(--info)"></i>
+          <span>Your basket was restored from your last session.</span>
+          <button @click="basketRestored=false" class="btn btn-g btn-xs" style="margin-left:auto"><i class="fas fa-times"></i></button>
+        </div>
         <div v-for="item in basket" :key="item.product.id" class="basket-row">
           <div class="basket-img">
             <img v-if="item.product.image_url" :src="item.product.image_url" :alt="item.product.name">
@@ -2765,7 +3000,7 @@
         </div>
       </div>
       <div class="modal-ft" v-if="basket.length">
-        <button @click="submitBasket" class="btn btn-p"><i class="fas fa-paper-plane"></i>Submit Procurement Request</button>
+        <button @click="submitBasket" class="btn btn-p"><i class="fas fa-paper-plane"></i>Submit Request</button>
         <button @click="clearBasket();showBasket=false" class="btn btn-d"><i class="fas fa-trash"></i>Clear Basket</button>
         <button @click="showBasket=false" class="btn btn-g">Continue shopping</button>
       </div>
@@ -2899,6 +3134,20 @@
   </div>
 </transition>
 
+<!-- FIX 9: Offline detection banner -->
+<div v-if="isOffline" style="position:fixed;top:0;left:0;right:0;z-index:9999;background:#c0392b;color:white;text-align:center;padding:10px 16px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px">
+  <i class="fas fa-wifi-slash"></i>
+  No internet connection — some features may not work
+  <i class="fas fa-wifi-slash"></i>
+</div>
+
+<!-- Support FAB — contact support -->
+<a v-if="profile" href="https://wa.me/34659447627?text=Hello%20TechMedixLink%20support%2C%20I%20need%20help%20with%20my%20account." target="_blank"
+  style="position:fixed;bottom:80px;right:16px;z-index:300;width:48px;height:48px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,0.2);text-decoration:none"
+  title="Contact support on WhatsApp">
+  <i class="fab fa-whatsapp" style="color:white;font-size:22px"></i>
+</a>
+
 <!-- Messages panel backdrop -->
 <div v-if="showMessagesPanel" style="position:fixed;inset:0;z-index:449;background:rgba(10,31,60,0.25)" @click="closeMessages"></div>
 
@@ -2912,42 +3161,6 @@
 <!-- DEBUG: Remove after testing -->
 
 <!-- ── MOBILE BOTTOM NAV ── -->
-<div class="mob-bottom-nav">
-  <div class="mob-bottom-nav-inner">
-    <button class="mob-nav-btn" :class="{active:tab==='home'}" @click="goTab('home')">
-      <i class="fas fa-house"></i>
-      <span>Home</span>
-    </button>
-    <button class="mob-nav-btn" :class="{active:tab==='browse'}" @click="goTab('browse')">
-      <i class="fas fa-magnifying-glass"></i>
-      <span>Browse</span>
-      <span v-if="products.length" class="mob-nav-badge">{{ products.length }}</span>
-    </button>
-    <template v-if="profile && canBuy">
-      <button class="mob-nav-btn" :class="{active:tab==='my-requests'}" @click="goTab('my-requests')">
-        <i class="fas fa-clipboard-list"></i>
-        <span>Requests</span>
-        <span v-if="myActiveReqs.length" class="mob-nav-badge">{{ myActiveReqs.length }}</span>
-      </button>
-    </template>
-    <template v-if="profile && isAdmin">
-      <button class="mob-nav-btn" :class="{active:tab==='admin'}" @click="goTab('admin')">
-        <i class="fas fa-shield-halved"></i>
-        <span>Admin</span>
-        <span v-if="pendingAdminCount" class="mob-nav-badge">{{ pendingAdminCount }}</span>
-      </button>
-    </template>
-    <button class="mob-nav-btn" @click="profile ? showProfileModal=true : showAuth=true">
-      <i class="fas fa-user"></i>
-      <span>{{ profile ? 'Profile' : 'Sign In' }}</span>
-    </button>
-  </div>
-</div>
-
-<!-- 3D Model Viewer -->
-<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
-
-<!-- ── MOBILE BOTTOM NAV ── -->
 <div class="mob-bottom-nav" v-if="profile">
   <div class="mob-nav-item" :class="{active:tab==='home'}" @click="goTab('home')">
     <i class="fas fa-house"></i><span>Home</span>
@@ -2958,7 +3171,7 @@
   </div>
   <div v-if="canBuy" class="mob-nav-item" :class="{active:tab==='my-requests'}" @click="goTab('my-requests')">
     <i class="fas fa-clipboard-list"></i><span>Requests</span>
-    <span v-if="myActiveReqs.length" class="mob-nav-chip">{{ myActiveReqs.length }}</span>
+    <span v-if="myActiveReqs.length || Object.values(unreadMessageCounts).reduce((s,v)=>s+v,0)>0" class="mob-nav-chip">{{ myActiveReqs.length + Object.values(unreadMessageCounts).reduce((s,v)=>s+v,0) }}</span>
   </div>
   <div v-if="canSell && !canBuy" class="mob-nav-item" :class="{active:tab==='my-listings'}" @click="goTab('my-listings')">
     <i class="fas fa-store"></i><span>Listings</span>
@@ -2987,41 +3200,5 @@
   </div>
 </div>
 
-
-<!-- ── MOBILE BOTTOM NAV ── -->
-<div class="mob-bottom-nav">
-  <div class="mob-bottom-nav-inner">
-    <button class="mob-nav-btn" :class="{active:tab==='home'}" @click="goTab('home')">
-      <i class="fas fa-house"></i>
-      <span>Home</span>
-    </button>
-    <button class="mob-nav-btn" :class="{active:tab==='browse'}" @click="goTab('browse')">
-      <i class="fas fa-magnifying-glass"></i>
-      <span>Browse</span>
-      <span v-if="products.length" class="mob-nav-badge">{{ products.length }}</span>
-    </button>
-    <template v-if="profile && canBuy">
-      <button class="mob-nav-btn" :class="{active:tab==='my-requests'}" @click="goTab('my-requests')">
-        <i class="fas fa-clipboard-list"></i>
-        <span>Requests</span>
-        <span v-if="myActiveReqs.length" class="mob-nav-badge">{{ myActiveReqs.length }}</span>
-      </button>
-    </template>
-    <template v-if="profile && isAdmin">
-      <button class="mob-nav-btn" :class="{active:tab==='admin'}" @click="goTab('admin')">
-        <i class="fas fa-shield-halved"></i>
-        <span>Admin</span>
-        <span v-if="pendingAdminCount" class="mob-nav-badge">{{ pendingAdminCount }}</span>
-      </button>
-    </template>
-    <button class="mob-nav-btn" @click="profile ? showProfileModal=true : showAuth=true">
-      <i class="fas fa-user"></i>
-      <span>{{ profile ? 'Profile' : 'Sign In' }}</span>
-    </button>
-  </div>
-</div>
-
-<!-- 3D Model Viewer -->
-<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
 </body>
 </html>
