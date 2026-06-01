@@ -4,6 +4,8 @@
 // Import what you need: import { profile, products } from './state.js'
 // ─────────────────────────────────────────────────────────────────
 
+import { TECHMEDIX_CONFIG } from '../config.js';
+
 const { ref, reactive, computed } = Vue;
 
 // ── Core UI ──────────────────────────────────────────────────────
