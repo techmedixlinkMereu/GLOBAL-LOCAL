@@ -148,7 +148,7 @@ export async function loadReqs(page = 0) {
       .select('*, items:request_items(*)', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(from, to);
-    if (!profile.value?.user_role === 'admin' && profile.value) {
+    if (profile.value?.user_role !== 'admin' && profile.value) {
       q = q.eq('user_id', profile.value.id);
     }
     const { data, error, count } = await q;
@@ -253,7 +253,7 @@ export async function loadAnalytics() {
       monthlyData: monthlyData || [],
       statusData: statusData || [],
     };
-    Vue.nextTick(() => { renderCharts(); });
+    setTimeout(() => { renderCharts(); }, 0);
   } catch(e) { console.error('loadAnalytics:', e); }
 }
 
@@ -602,8 +602,8 @@ export function goTab(t, loadAnalyticsFn, loadSellerAnalyticsFn) {
   tab.value = t;
   sidebarOpen.value = false;
   closeAllMenus();
-  if (t === 'analytics') Vue.nextTick(() => loadAnalyticsFn?.());
-  if (t === 'seller-analytics') Vue.nextTick(() => loadSellerAnalyticsFn?.());
+  if (t === 'analytics') setTimeout(() => loadAnalyticsFn?.(), 0);
+  if (t === 'seller-analytics') setTimeout(() => loadSellerAnalyticsFn?.(), 0);
   if (t === 'shoppers') loadShoppers();
   if (t === 'admin-users' || t === 'admin-listings') { loadAdminUsers(); loadProds(); }
 }
@@ -943,7 +943,7 @@ export async function fetchTracking() {
 
 export function doTrack(num) {
   tab.value = 'tracking'; trackId.value = num; trackedReq.value = null;
-  Vue.nextTick(fetchTracking);
+  setTimeout(fetchTracking, 0);
 }
 
 export function openOrderDetail(r) { orderDetailReq.value = r; showOrderDetail.value = true; }
