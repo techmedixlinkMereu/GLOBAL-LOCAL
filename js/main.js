@@ -14,6 +14,9 @@ const { createApp, computed, watch, onMounted, nextTick } = Vue;
 const app = createApp({
   setup() {
 
+    // FIX 17: Products loading skeleton state
+    const productsLoading = computed(() => S.products.value.length === 0 && S.loading.value);
+
     // ── Computed: roles ─────────────────────────────────────────
     const isAdmin = computed(() => S.profile.value?.user_role === 'admin');
     const canBuy  = computed(() => !S.profile.value || ['buyer', 'both'].includes(S.profile.value?.user_role));
@@ -120,7 +123,16 @@ const app = createApp({
 
     const filteredAdminReqs = computed(() => {
       let list = S.allRequests.value;
-      if (S.adminReqSearch.value)        list = list.filter(r => r.request_number?.toLowerCase().includes(S.adminReqSearch.value.toLowerCase()));
+      if (S.adminReqSearch.value) {
+        const q = S.adminReqSearch.value.toLowerCase();
+        list = list.filter(r => {
+          const buyer = S.adminUsers.value.find(u => u.id === r.user_id);
+          return r.request_number?.toLowerCase().includes(q)
+            || buyer?.full_name?.toLowerCase().includes(q)
+            || buyer?.email?.toLowerCase().includes(q)
+            || buyer?.phone?.includes(q);
+        });
+      }
       if (S.adminReqFilter.value !== 'all')   list = list.filter(r => r.status === S.adminReqFilter.value);
       if (S.adminPlatFilter.value !== 'all')  list = list.filter(r => r.platform_type === S.adminPlatFilter.value);
       return list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -215,6 +227,17 @@ const app = createApp({
       return { pct, unlocks, next: checks.find(c => !c.done), checks };
     });
 
+    // ITEM 97: Admin products search
+    const filteredAdminProds = computed(() => {
+      if (!S.adminProdSearch.value) return S.products.value;
+      const q = S.adminProdSearch.value.toLowerCase();
+      return S.products.value.filter(p =>
+        p.name?.toLowerCase().includes(q) ||
+        p.manufacturer?.toLowerCase().includes(q) ||
+        p.seller_name?.toLowerCase().includes(q)
+      );
+    });
+
     const allUsersSelected = computed(() =>
       filteredAdminUsers.value.length > 0 &&
       filteredAdminUsers.value.every(u => S.selectedUserIds.value.has(u.id))
@@ -266,9 +289,110 @@ const app = createApp({
     // ── Watcher ──────────────────────────────────────────────────
     watch(S.authTab, () => { S.authErr.value = ''; S.magicSent.value = false; S.aF.password = ''; });
 
+    // ITEM 47: body scroll lock when any modal open
+    const anyModalOpen = computed(() =>
+      S.showAuth.value || S.showListingModal.value || S.showReqModal.value ||
+      S.showQuoteModal.value || S.showReviewModal.value || S.showProfileModal.value ||
+      S.showBasket.value || S.showVerifyModal.value || S.showCancelModal.value ||
+      S.showOrderDetail.value || S.showAdminUserModal.value || S.showTcModal.value ||
+      !!S.confirm.value || S.showOnboarding.value
+    );
+    watch(anyModalOpen, (v) => {
+      document.body.classList.toggle('modal-open', v);
+    });
+
+    // ITEM 93: Reactive rate age timer — recalculate every minute
+    function updateRateAge() {
+      if (!S.rateUpdatedAt.value) { S.rateAgeDisplay.value = ''; return; }
+      const h = Math.round((Date.now() - new Date(S.rateUpdatedAt.value)) / 3600000);
+      const m = Math.round((Date.now() - new Date(S.rateUpdatedAt.value)) / 60000);
+      if (m < 1) S.rateAgeDisplay.value = 'Updated just now';
+      else if (m < 60) S.rateAgeDisplay.value = 'Updated ' + m + 'm ago';
+      else if (h < 24) S.rateAgeDisplay.value = 'Updated ' + h + 'h ago';
+      else S.rateAgeDisplay.value = 'Updated ' + Math.round(h/24) + 'd ago';
+    }
+    S.rateAgeClock.value = setInterval(updateRateAge, 60000);
+    updateRateAge();
+
+    // ITEM 84: Auto-refresh exchange rate every 30 min
+    setInterval(() => { A.loadExchangeRate(); }, 30 * 60 * 1000);
+
+    // FIX 13: Update document title on tab change
+    // FIX 9: Offline detection
+    const isOffline = Vue.ref(!navigator.onLine);
+    window.addEventListener('online',  () => { isOffline.value = false; S.toast('ok', 'Back online'); });
+    window.addEventListener('offline', () => { isOffline.value = true; });
+
+    watch(S.tab, (t) => {
+      const titles = {
+        home: 'Dashboard', browse: 'Browse Products', 'my-requests': 'My Requests',
+        tracking: 'Track Order', payments: 'Payments', 'my-listings': 'My Listings',
+        inquiries: 'Inquiries', 'seller-analytics': 'My Analytics',
+        admin: 'Admin Panel', 'admin-users': 'All Users',
+        'admin-listings': 'All Listings', analytics: 'Analytics', shoppers: 'Shoppers'
+      };
+      document.title = (titles[t] || t) + ' · TechMedixLink';
+    });
+
+    // FIX 13: Persist browse filters across tab switches using sessionStorage
+    // ITEM 85: Persist basket to localStorage
+    watch(S.basket, (v) => {
+      try { localStorage.setItem('tml_basket', JSON.stringify(v)); } catch {}
+    }, { deep: true });
+
+    watch([S.prodSearch, S.prodFilter, S.prodTypeFilter, S.sortProd, S.filterTmda, S.filterInStock, S.priceMin, S.priceMax, S.manufFilter], () => {
+      try {
+        sessionStorage.setItem('tml_browse_filters', JSON.stringify({
+          prodSearch: S.prodSearch.value, prodFilter: S.prodFilter.value,
+          prodTypeFilter: S.prodTypeFilter.value, sortProd: S.sortProd.value,
+          filterTmda: S.filterTmda.value, filterInStock: S.filterInStock.value,
+          priceMin: S.priceMin.value, priceMax: S.priceMax.value, manufFilter: S.manufFilter.value,
+        }));
+      } catch {}
+    });
+
     // ── onMounted: auth state machine ────────────────────────────
     onMounted(() => {
       document.addEventListener('keydown', handleKey);
+
+      // ITEM 85: Restore basket from localStorage
+      try {
+        const savedBasket = localStorage.getItem('tml_basket');
+        if (savedBasket) {
+          const parsed = JSON.parse(savedBasket);
+          if (parsed?.length) {
+            S.basket.value = parsed;
+            S.basketRestored.value = true;
+          }
+        }
+      } catch {}
+
+      // FIX 14: Deep link support — ?track=TML-2026-XXXXX
+      const urlParams = new URLSearchParams(window.location.search);
+      const trackParam = urlParams.get('track');
+      if (trackParam) {
+        S.tab.value = 'tracking';
+        S.trackId.value = trackParam.toUpperCase();
+        history.replaceState(null, '', window.location.pathname);
+        setTimeout(() => A.fetchTracking(), 1500);
+      }
+
+      // FIX 13: Restore browse filters from sessionStorage
+      try {
+        const saved = sessionStorage.getItem('tml_browse_filters');
+        if (saved) {
+          const f = JSON.parse(saved);
+          if (f.prodSearch)    S.prodSearch.value    = f.prodSearch;
+          if (f.prodFilter)    S.prodFilter.value    = f.prodFilter;
+          if (f.prodTypeFilter) S.prodTypeFilter.value = f.prodTypeFilter;
+          if (f.sortProd)      S.sortProd.value      = f.sortProd;
+          if (f.filterTmda)    S.filterTmda.value    = f.filterTmda;
+          if (f.filterInStock) S.filterInStock.value = f.filterInStock;
+          if (f.priceMin > 0)  S.priceMin.value      = f.priceMin;
+          if (f.priceMax < 100000) S.priceMax.value  = f.priceMax;
+          if (f.manufFilter)   S.manufFilter.value   = f.manufFilter;
+        }
+      } catch {}
 
       const params = new URLSearchParams(
         window.location.hash.startsWith('#')
@@ -310,7 +434,7 @@ const app = createApp({
             if (isAdmin.value) { await A.loadAdminUsers(); await A.loadShoppers(); }
             await A.loadAddresses();
             await A.loadUnreadMessageCounts();
-            const isNewish = !S.profile.value?.avatar_url && !S.profile.value?.phone;
+            const isNewish = !S.profile.value?.onboarding_done && !S.profile.value?.avatar_url && !S.profile.value?.phone;
             if (isNewish) A.startOnboarding();
             else S.toast('ok', 'Welcome back!', S.profile.value?.full_name || session.user.email || '');
 
@@ -369,7 +493,7 @@ const app = createApp({
       ...S,
 
       // Computed (defined in main.js)
-      isAdmin, canBuy, canSell, pageTitle, primaryLabel, userInitial, today,
+      isAdmin, canBuy, canSell, pageTitle, primaryLabel, userInitial, today, productsLoading, isOffline, anyModalOpen, filteredAdminProds,
       unreadCount, uniqueCats, groupedNotifications,
       myRequests, myListings, incomingReqs, myActiveReqs, myDoneReqs,
       myTotalSpent, myBalanceDue, pendingPayCount, pendingAdminCount, avgListingPrice,
@@ -379,7 +503,7 @@ const app = createApp({
       pStats, adminTriage, profileCompletion,
       allUsersSelected, allProductsSelected,
 
-      // Formatters (bound for template use)
+      // Formatters (bound for template use) 
       fNum: F.fNum, tzs: F.tzs, fDate: F.fDate, fDateTime: F.fDateTime,
       fEvent: F.fEvent, fCountdown: F.fCountdown, stockLabel: F.stockLabel,
       stockClass: F.stockClass, roleLabel: F.roleLabel, roleIcon: F.roleIcon,
@@ -394,6 +518,8 @@ const app = createApp({
       goTab, primaryAction, saveReq, submitBasket,
       toggleAllUsers, toggleAllProducts, clickNotification,
       confirmPaymentAdmin: A.confirmPaymentAdmin,
+      exportRequestsCSV: (reqs) => A.exportRequestsCSV(reqs, S.adminUsers.value),
+      markNotificationRead: A.markNotificationRead,
     };
   }
 });
