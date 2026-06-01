@@ -732,6 +732,33 @@
         </div>
 
         <div style="margin-bottom:var(--s3)" class="fu">
+          <!-- BALANCE DUE URGENT BANNER -->
+          <div v-if="myBalanceDue > 0" @click="goTab('my-requests')" style="background:var(--warn-bg);border:1.5px solid var(--warn-bd);border-radius:10px;padding:12px 16px;margin-bottom:16px;cursor:pointer;display:flex;align-items:center;gap:12px">
+            <div style="width:36px;height:36px;border-radius:50%;background:var(--warn);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i class="fas fa-exclamation" style="color:white;font-size:14px"></i>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:var(--tsm);font-weight:700;color:var(--warn)">Payment due on {{ pendingPayCount }} order{{ pendingPayCount>1?'s':'' }}</div>
+              <div style="font-size:var(--txs);color:var(--tx-2);margin-top:2px">Outstanding balance: <strong style="font-family:var(--fm)">{{ tzs(myBalanceDue) }}</strong> — tap to view and pay</div>
+            </div>
+            <i class="fas fa-chevron-right" style="color:var(--warn);font-size:12px;flex-shrink:0"></i>
+          </div>
+          <!-- ACTIVE ORDER PROGRESS STRIP -->
+          <div v-if="myActiveReqs.length" style="background:var(--bg-1);border:1px solid var(--ln-2);border-radius:10px;padding:12px 16px;margin-bottom:16px">
+            <div style="font-size:11px;font-weight:700;color:var(--tx-4);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px">Active orders</div>
+            <div v-for="r in myActiveReqs.slice(0,3)" :key="r.id" @click="openDetailModal(r)" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bg-3);cursor:pointer" :style="myActiveReqs.indexOf(r)===myActiveReqs.slice(0,3).length-1?'border-bottom:none':''">
+              <div style="width:8px;height:8px;border-radius:50%;flex-shrink:0" :style="{background:statusList.find(s=>s.val===r.status)?.color||'#888'}"></div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:var(--tsm);font-weight:600;color:var(--tx-1);font-family:var(--fm)">{{ r.request_number }}</div>
+                <div style="font-size:var(--txs);color:var(--tx-3)">{{ fStatus(r.status) }} · {{ tzs(r.total_cost) }}</div>
+              </div>
+              <div v-if="r.expected_delivery_date" style="font-size:var(--txs);color:var(--tx-3);text-align:right;flex-shrink:0">
+                <div style="font-size:9px;color:var(--tx-4)">Est. delivery</div>
+                <div style="font-weight:600;color:var(--tx-2)">{{ fDate(r.expected_delivery_date) }}</div>
+              </div>
+              <i class="fas fa-chevron-right" style="color:var(--tx-4);font-size:9px;flex-shrink:0"></i>
+            </div>
+          </div>
           <div style="font-family:var(--fd);font-size:30px;color:var(--tx-1);line-height:1.15">
             {{  profile?'Welcome back,':'Welcome to'  }}<br><span style="color:var(--a)">{{  profile?.full_name?.split(' ')[0]||'TechMedixLink'  }}</span>
           </div>
@@ -753,7 +780,7 @@
           <div style="font-size:10px;font-weight:700;color:var(--tx-4);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:var(--s3)" :class="canBuy?'fu fu-2':'fu fu-1'">Store Overview</div>
           <div class="kpi-grid" :class="canBuy?'fu fu-2':'fu fu-1'">
             <div class="kpi"><div class="kpi-ico"><i class="fas fa-store"></i></div><div class="kpi-lbl">Live Listings</div><div class="kpi-val">{{  myListings.filter(p=>p.is_active).length  }}</div><div class="kpi-sub">{{  myListings.length  }} total</div></div>
-            <div class="kpi"><div class="kpi-ico"><i class="fas fa-inbox"></i></div><div class="kpi-lbl">Inquiries</div><div class="kpi-val">{{  incomingReqs.length  }}</div><div class="kpi-sub" :class="incomingReqs.filter(r=>r.status==='pending').length?'up':''">{{  incomingReqs.filter(r=>r.status==='pending').length  }} pending</div></div>
+            <div class="kpi"><div class="kpi-ico" :style="incomingReqs.filter(r=>r.status==='pending').length?'background:var(--warn-bg);border-color:var(--warn-bd);color:var(--warn);':''"><i class="fas fa-inbox"></i></div><div class="kpi-lbl">Inquiries</div><div class="kpi-val">{{  incomingReqs.length  }}</div><div class="kpi-sub" :class="incomingReqs.filter(r=>r.status==='pending').length?'wn':''">{{  incomingReqs.filter(r=>r.status==='pending').length  }} pending<span v-if="incomingReqs.filter(r=>r.status==='pending').length"> — <span @click.stop="goTab('inquiries')" style="color:var(--warn);cursor:pointer;text-decoration:underline">review now</span></span></div></div>
             <div class="kpi"><div class="kpi-ico"><i class="fas fa-dollar-sign"></i></div><div class="kpi-lbl">Avg. Price</div><div class="kpi-val sm ac">${{  fNum(avgListingPrice)  }}</div><div class="kpi-sub">USD listed</div></div>
             <div class="kpi" style="cursor:pointer" @click="userVerifyStatus(profile)==='none' ? showVerifyModal=true : null">
               <div class="kpi-ico" :style="userVerifyStatus(profile)==='verified'?'background:var(--ok-bg);border-color:var(--ok-bd);color:var(--ok)':userVerifyStatus(profile)==='pending'?'background:var(--warn-bg);border-color:var(--warn-bd);color:var(--warn)':''">
@@ -1333,9 +1360,10 @@
         </div>
         <!-- Sub tabs -->
         <div style="display:flex;gap:var(--s2);margin-bottom:var(--s3);flex-wrap:wrap" class="fu fu-1">
-          <button v-for="st in [{v:'requests',l:'All Requests',i:'fa-clipboard-list'},{v:'users',l:'Users',i:'fa-users'},{v:'products',l:'Products',i:'fa-boxes-stacked'}]" :key="st.v"
+          <button v-for="st in [{v:'requests',l:'All Requests',i:'fa-clipboard-list'},{v:'payments',l:'Payments',i:'fa-credit-card'},{v:'users',l:'Users',i:'fa-users'},{v:'products',l:'Products',i:'fa-boxes-stacked'}]" :key="st.v"
             @click="adminSubTab=st.v" class="btn btn-sm" :class="adminSubTab===st.v?'btn-p':'btn-s'">
             <i class="fas" :class="st.i"></i>{{  st.l  }}
+            <span v-if="st.v==='payments' && payments.filter(p=>p.status==='pending').length" class="badge b-wn" style="font-size:8px;margin-left:4px;padding:1px 5px">{{ payments.filter(p=>p.status==='pending').length }}</span>
           </button>
         </div>
         <!-- Requests table -->
@@ -1389,6 +1417,35 @@
             <button class="pgn-btn" @click="loadReqs(reqPage-1)" :disabled="reqPage===0"><i class="fas fa-chevron-left"></i>Prev</button>
             <span class="pgn-info">Page {{  reqPage+1  }} of {{  Math.ceil(reqTotal/REQ_PER_PAGE)  }} · {{  reqTotal  }} requests</span>
             <button class="pgn-btn" @click="loadReqs(reqPage+1)" :disabled="(reqPage+1)*REQ_PER_PAGE>=reqTotal">Next<i class="fas fa-chevron-right"></i></button>
+          </div>
+        </div>
+        <!-- Payments table -->
+        <div v-if="adminSubTab==='payments'" class="fu fu-2">
+          <div class="tbl-w">
+            <table class="tbl">
+              <thead><tr><th>Request #</th><th>Buyer</th><th>Amount</th><th>Method</th><th>Reference</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+              <tbody>
+                <tr v-for="p in payments.slice().sort((a,b)=>new Date(b.payment_date)-new Date(a.payment_date))" :key="p.id">
+                  <td><span class="mono" style="font-size:11px">{{ allRequests.find(r=>r.id===p.request_id)?.request_number || p.request_id?.slice(0,8) }}</span></td>
+                  <td style="font-size:var(--txs)">{{ adminUsers.find(u=>u.id===p.user_id)?.full_name || '--' }}</td>
+                  <td><span style="font-family:var(--fm);font-size:12px;font-weight:600" :style="(p.amount||0)>0?'color:var(--ok)':''">{{ tzs(p.amount) }}</span></td>
+                  <td><span class="badge b-mu" style="font-size:9px;text-transform:capitalize">{{ p.payment_method?.replace(/_/g,' ') }}</span></td>
+                  <td><span style="font-family:var(--fm);font-size:11px;color:var(--tx-3)">{{ p.mpesa_reference || '--' }}</span></td>
+                  <td>
+                    <span class="badge" :class="p.status==='completed'?'b-ok':p.status==='pending'?'b-wn':'b-er'" style="font-size:9px">
+                      {{ p.status }}
+                    </span>
+                  </td>
+                  <td style="font-size:var(--txs)">{{ fDateTime(p.payment_date) }}</td>
+                  <td>
+                    <button v-if="p.status==='pending'" @click="confirmPaymentAdmin(p)" class="btn btn-ok btn-xs">
+                      <i class="fas fa-check" style="font-size:9px"></i>Confirm
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="!payments.length"><td colspan="8" style="text-align:center;padding:var(--s6);color:var(--tx-3)">No payments yet</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
         <!-- Users table -->
@@ -1814,7 +1871,9 @@
           <div class="fin-c"><div class="fin-l">Balance Due</div><div class="fin-v" :class="(detailReq.balance_due||0)>0?'due':''">{{  tzs(detailReq.balance_due)  }}</div></div>
         </div>
         <!-- Tracking timeline -->
-        <div style="font-family:var(--fd);font-size:18px;font-weight:500;color:var(--tx-1);margin-bottom:var(--s3)">Tracking Events</div>
+        <div style="font-family:var(--fd);font-size:18px;font-weight:500;color:var(--tx-1);margin-bottom:var(--s3)">Tracking Events
+          <span v-if="detailReq.expected_delivery_date" style="font-size:12px;font-weight:400;color:var(--tx-3);margin-left:12px;font-family:var(--fb)"><i class="fas fa-calendar-check" style="font-size:10px;color:var(--ok)"></i> Est. delivery: <strong style="color:var(--tx-2)">{{ fDate(detailReq.expected_delivery_date) }}</strong></span>
+        </div>
         <div v-if="!detailReq.tracking_events?.length" style="font-size:var(--tsm);color:var(--tx-3);margin-bottom:var(--s4)">No tracking events yet.</div>
         <div class="timeline">
           <div v-for="e in detailReq.tracking_events" :key="e.id" class="tl-item">
@@ -1849,6 +1908,7 @@
         <button v-if="isAdmin" @click="openQuoteModal(detailReq);detailReq=null" class="btn btn-info"><i class="fas fa-file-invoice-dollar"></i>Send Quote</button>
         <button v-if="!isAdmin&&detailReq.status==='delivered'" @click="confirmReceipt(detailReq);detailReq=null" class="btn btn-ok"><i class="fas fa-box-open"></i>Confirm Receipt</button>
         <button v-if="!isAdmin&&['pending','quoted','draft'].includes(detailReq.status)" @click="askCancelRequest(detailReq);detailReq=null" class="btn btn-d"><i class="fas fa-times-circle"></i>Cancel Request</button>
+        <button @click="printPPRA(detailReq)" class="btn btn-g"><i class="fas fa-file-pdf"></i>Invoice PDF</button>
         <button @click="detailReq=null" class="btn btn-g">Close</button>
       </div>
     </div>
