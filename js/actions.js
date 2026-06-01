@@ -263,7 +263,8 @@ export async function loadSellerAnalytics(myListings) {
   try {
     const myProductIds = myListings.map(p => p.id);
     if (!myProductIds.length) {
-      sellerAnalytics.value = { noProducts: true };
+      const totalRevenueTzs = Math.round(totalRevenue * (usdToTzs.value || 2650));
+  sellerAnalytics.value = { noProducts: true };
       sellerAnalyticsLoading.value = false;
       return;
     }
@@ -408,7 +409,7 @@ export async function doSignup() {
     await sb.from('users').insert({
       id: data.user.id, email: aF.email, full_name: aF.full_name,
       phone: aF.phone || null, user_role: aF.user_role, user_type: aF.user_type,
-      company_name: aF.company_name || null, created_at: new Date().toISOString()
+      company_name: aF.company_name || null, onboarding_done: false, created_at: new Date().toISOString()
     });
     await loadUserProfile(data.user.id);
     showAuth.value = false;
@@ -548,9 +549,15 @@ export async function saveProfile() {
   toast('ok', 'Profile updated');
 }
 
+export async function markNotificationRead(id) {
+  await sb.from('notifications').update({ is_read: true, read_at: new Date().toISOString() }).eq('id', id);
+  const n = notifications.value.find(n => n.id === id);
+  if (n) n.is_read = true;
+}
+
 export async function clickNotification(n, openDetailModal, goTab) {
   if (!n.is_read) {
-    await sb.from('notifications').update({ is_read: true, read_at: new Date().toISOString() }).eq('id', n.id);
+    await markNotificationRead(n.id);
     await loadNotifications();
   }
   showNotifPanel.value = false;
@@ -602,8 +609,9 @@ export function goTab(t, loadAnalyticsFn, loadSellerAnalyticsFn) {
   tab.value = t;
   sidebarOpen.value = false;
   closeAllMenus();
+  setTimeout(() => { document.querySelector('.content')?.scrollTo({ top: 0, behavior: 'smooth' }); }, 50);
   if (t === 'analytics') setTimeout(() => loadAnalyticsFn?.(), 0);
-  if (t === 'seller-analytics') setTimeout(() => loadSellerAnalyticsFn?.(), 0);
+  if (t === 'seller-analytics') setTimeout(() => loadSellerAnalyticsFn?.(), 100);
   if (t === 'shoppers') loadShoppers();
   if (t === 'admin-users' || t === 'admin-listings') { loadAdminUsers(); loadProds(); }
   if (t === 'admin') { loadAdminUsers(); loadReqs(); loadPayments(); }
@@ -754,8 +762,20 @@ export async function saveListing() {
   loading.value = false;
   if (error) { toast('err', 'Error', error.message); return; }
   await loadProds();
+  const wasEditing = !!editingProd.value;
   closeListing();
-  toast('ok', editingProd.value ? 'Product updated' : 'Product listed');
+  if (!wasEditing) {
+    // ITEM 66: Show share prompt after new listing
+    const freshProds = (await sb.from('products').select('id').order('created_at', { ascending: false }).limit(1)).data;
+    const newId = freshProds?.[0]?.id;
+    if (newId) {
+      setTimeout(() => {
+        toast('ok', 'Product listed!', 'Share it with buyers via WhatsApp to get your first inquiry.');
+      }, 300);
+    }
+  } else {
+    toast('ok', 'Product updated');
+  }
 }
 
 export async function toggleListingStatus(p) {
@@ -844,6 +864,12 @@ export async function saveReq(selectedProduct, reqCostEstimate) {
   if (isCatalog && !rF.product_id) return;
   if (isCustom && !rF.custom_name) return;
   if (isLink && !rF.source_url) return;
+  if (isLink && rF.source_url) {
+    try { new URL(rF.source_url); } catch {
+      toast('err', 'Invalid URL', 'Please enter a valid URL starting with https://');
+      return;
+    }
+  }
   if (!rF.quantity || !profile.value) return;
   loading.value = true; loadMsg.value = 'Submitting request…';
   const p   = selectedProduct;
@@ -891,7 +917,7 @@ export async function saveReq(selectedProduct, reqCostEstimate) {
       await createNotification(admin.id, 'status_update', 'New Request Received', `New request ${request_number} requires review.`, reqData.id, 'in_app');
     }
   } catch {}
-  toast('ok', 'Request submitted', request_number);
+  toast('ok', 'Request submitted — you\'ll hear back within 24 hours', request_number);
   tab.value = 'my-requests';
 }
 
@@ -1116,6 +1142,10 @@ export async function sendQuote() {
 export async function acceptQuote(r) {
   askPayment(r);
   toast('ok', 'Quote accepted! Complete your deposit below to begin sourcing.');
+  setTimeout(() => {
+    const pmtEl = document.querySelector('.pmt-amount-input, input[placeholder*="amount"], input[placeholder*="Amount"]');
+    if (pmtEl) pmtEl.focus();
+  }, 300);
 }
 
 export async function confirmReceipt(r) {
@@ -1287,6 +1317,24 @@ export async function adminToggleUserRole(u) {
   if (!ok) { toast('err', 'Unauthorised', 'Admin access required'); return; }
   const roles = ['buyer', 'seller', 'both', 'admin'];
   const next = roles[(roles.indexOf(u.user_role) + 1) % roles.length];
+  // ITEM 82: Warn if demoting a seller with active listings
+  if (['seller','both'].includes(u.user_role) && next === 'buyer') {
+    const { data: listings } = await sb.from('products').select('id').eq('user_id', u.id).eq('is_active', true);
+    if (listings?.length) {
+      confirm.value = {
+        title: 'Demote seller?', tone: 'wn', icon: 'fas fa-exclamation-triangle',
+        ok_lbl: 'Demote & Hide Listings',
+        msg: `${u.full_name} has ${listings.length} active listing(s). Demoting will hide all their products.`,
+        ok: async () => {
+          await sb.from('products').update({ is_active: false }).eq('user_id', u.id);
+          await sb.from('users').update({ user_role: next, updated_at: new Date().toISOString() }).eq('id', u.id);
+          await loadAdminUsers(); await loadProds();
+          toast('ok', 'Role updated + listings hidden', `${u.full_name} → ${next}`);
+        }
+      };
+      return;
+    }
+  }
   const { error } = await sb.from('users').update({ user_role: next, updated_at: new Date().toISOString() }).eq('id', u.id);
   if (!error) { await loadAdminUsers(); toast('ok', 'Role updated', `${u.full_name} → ${next}`); }
 }
@@ -1557,3 +1605,45 @@ export function printPPRA(r) {
 }
 
 export function printQuote(r) { window.print(); }
+
+// ── ADMIN: EXPORT REQUESTS TO CSV ────────────────────────────────
+export function exportRequestsCSV(requests, adminUsers) {
+  const headers = ['Request #','Status','Platform','Buyer','Total (TZS)','Paid (TZS)','Balance (TZS)','Payment Status','Date'];
+  const rows = requests.map(r => {
+    const buyer = adminUsers?.find(u => u.id === r.user_id);
+    return [
+      r.request_number || '',
+      r.status || '',
+      r.platform_type || '',
+      buyer?.full_name || buyer?.email || r.user_id?.slice(0,8) || '',
+      Math.round(r.total_cost || 0),
+      Math.round(r.deposit_paid || 0),
+      Math.round(r.balance_due || 0),
+      r.payment_status || '',
+      r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB') : '',
+    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+  });
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `techmedixlink-requests-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+// ── ACCURATE TRIAGE COUNTS (item 83) — queries DB not paginated array ──
+export async function loadTriageCounts() {
+  try {
+    const [pending, payments, verify] = await Promise.all([
+      sb.from('requests').select('id', { count: 'exact', head: true }).in('status', ['pending','submitted']),
+      sb.from('payments').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      sb.from('users').select('id', { count: 'exact', head: true }).ilike('company_name', '[VERIFY_REQUESTED]%'),
+    ]);
+    return {
+      pendingRequests: pending.count || 0,
+      pendingPayments: payments.count || 0,
+      verifyRequests: verify.count || 0,
+    };
+  } catch { return { pendingRequests: 0, pendingPayments: 0, verifyRequests: 0 }; }
+}
