@@ -393,6 +393,7 @@ const app = createApp({
       // Wrappers (need computed values from this scope)
       goTab, primaryAction, saveReq, submitBasket,
       toggleAllUsers, toggleAllProducts, clickNotification,
+      confirmPaymentAdmin: A.confirmPaymentAdmin,
     };
   }
 });
