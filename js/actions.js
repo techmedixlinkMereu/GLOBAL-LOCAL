@@ -6,6 +6,7 @@
 import { sb } from './db.js';
 import {
   loading, loadMsg, profile, products, allRequests, payments, notifications,
+  toast, killToast,
   adminUsers, shoppers, addresses, analyticsData, sellerAnalytics,
   sellerAnalyticsLoading, productReviews, pdReviews, pdLoading,
   usdToTzs, rateSource, rateUpdatedAt,
@@ -33,6 +34,7 @@ import {
   selectedUserIds, selectedProductIds, bulkActionLoading,
   statusList, stepperStages, toasts,
   toast, killToast,
+  lastReqNumber, showReqSuccess, pdQty
 } from './state.js';
 
 import { fStatus, tzs, fDate, fDateTime } from './formatters.js';
@@ -917,13 +919,36 @@ export async function saveReq(selectedProduct, reqCostEstimate) {
       await createNotification(admin.id, 'status_update', 'New Request Received', `New request ${request_number} requires review.`, reqData.id, 'in_app');
     }
   } catch {}
-  toast('ok', 'Request submitted — you\'ll hear back within 24 hours', request_number);
+  lastReqNumber.value = request_number;
+  showReqModal.value = false;
+  showReqSuccess.value = true;
   tab.value = 'my-requests';
 }
 
 export function toggleStatusMenu(id) { openStatusMenu.value = openStatusMenu.value === id ? null : id; }
 
+// Valid forward transitions per status
+const STATUS_TRANSITIONS = {
+  pending:           ['quoted','cancelled'],
+  quoted:            ['deposit_paid','cancelled'],
+  deposit_paid:      ['sourcing','cancelled'],
+  sourcing:          ['shipped','cancelled'],
+  shipped:           ['in_transit','cancelled'],
+  in_transit:        ['customs_clearance','delivered','cancelled'],
+  customs_clearance: ['delivered','cancelled'],
+  delivered:         ['installed','completed'],
+  installed:         ['completed'],
+  completed:         [],
+  cancelled:         [],
+};
+
 export async function updateStatus(r, newStatus) {
+  // Admin can force any status, but warn for backwards moves
+  const valid = STATUS_TRANSITIONS[r.status] || [];
+  if (!valid.includes(newStatus) && profile.value?.user_role === 'admin') {
+    // Allow but it's a backward/non-standard move — just proceed
+    console.warn('Non-standard status transition:', r.status, '->', newStatus);
+  }
   openStatusMenu.value = null;
   if (profile.value?.user_role === 'admin') {
     const ok = await verifyAdminServer();
@@ -1013,10 +1038,15 @@ export async function openDetailModal(r) {
 }
 
 // ── PAYMENTS ─────────────────────────────────────────────────────
-export function validateMpesaRef(ref) {
-  if (!ref) return true;
+export function validatePaymentRef(method, ref) {
+  if (!ref) return method === 'cash' || method === 'bank_transfer'; // optional for bank/cash
+  if (method === 'mereu_pay') return /^MPY-\d{4}-[A-Z0-9]{6}$/i.test(ref) || ref.length >= 6;
+  if (method === 'bank_transfer') return ref.length >= 4;
+  if (method === 'cash') return true;
   return /^[A-Z0-9]{8,12}$/.test(ref.toUpperCase());
 }
+// Keep old name for compatibility
+export function validateMpesaRef(ref) { return validatePaymentRef('mpesa', ref); }
 
 export function askCancelRequest(r) { cancelReq.value = r; cancelReason.value = ''; showCancelModal.value = true; }
 
@@ -1052,8 +1082,17 @@ export function askPayment(r) {
 
 export async function doPayment(r) {
   if (!pmtF.amount || pmtF.amount <= 0) { toast('err', 'Invalid amount', 'Enter a valid payment amount'); return; }
-  if (pmtF.method === 'mpesa' && pmtF.reference && !validateMpesaRef(pmtF.reference)) {
-    toast('err', 'Invalid reference', 'M-Pesa reference should be 8-12 alphanumeric characters'); return;
+  // Validate reference per method
+  if (!validatePaymentRef(pmtF.method, pmtF.reference)) {
+    const msgs = {
+      mpesa: 'M-Pesa reference should be 8-12 alphanumeric characters (e.g. QHX1234ABC)',
+      mereu_pay: 'Enter your Mereu Pay transaction ID',
+      tigo_pesa: 'Tigo Pesa reference should be 8-12 characters',
+      airtel_money: 'Airtel Money reference should be 8-12 characters',
+      bank_transfer: 'Enter your bank transaction reference',
+    };
+    toast('err', 'Invalid reference', msgs[pmtF.method] || 'Please enter a valid reference');
+    return;
   }
   if (pmtF.amount > (r.balance_due || 0) + 1) toast('warn', 'Overpayment warning', `Amount exceeds balance due of ${tzs(r.balance_due)}`);
   loading.value = true; loadMsg.value = 'Recording payment…';
@@ -1096,8 +1135,15 @@ export async function doPayment(r) {
     ? `Payment of ${tzs(pmtF.amount)} confirmed for request ${r.request_number}.`
     : `Your payment of ${tzs(pmtF.amount)} for ${r.request_number} has been received and is pending verification.`;
   await createNotification(r.user_id, 'payment_received', isAdmin ? 'Payment Confirmed' : 'Payment Received', payMsg, r.id, 'in_app');
-  if (isAdmin) toast('ok', 'Payment confirmed', tzs(pmtF.amount));
-  else toast('info', 'Payment submitted for verification', 'Admin will confirm within 24 hours. Reference: ' + (pmtF.reference || 'N/A'));
+  if (pmtF.method === 'mereu_pay') {
+    toast('ok', 'Mereu Pay submitted', 'Transaction will be verified instantly');
+  } else if (pmtF.method === 'cash') {
+    toast('ok', 'Cash payment recorded', 'Our team will contact you to arrange payment');
+  } else if (autoConfirm) {
+    toast('ok', 'Payment confirmed', tzs(pmtF.amount));
+  } else {
+    toast('info', 'Payment submitted', 'Admin will confirm within 24 hours · Ref: ' + (pmtF.reference || 'N/A'));
+  }
 }
 
 // ── QUOTES ───────────────────────────────────────────────────────
@@ -1174,7 +1220,7 @@ export function openReviewModal(r) {
 }
 
 export async function openProductDetail(p) {
-  viewedProduct.value = p; showProductDetail.value = true; pd3dMode.value = false;
+  viewedProduct.value = p; showProductDetail.value = true; pd3dMode.value = false; pdQty.value = 1;
   pdReviews.value = []; pdLoading.value = true; activeDetailImage.value = null;
   try {
     const { data: rvData } = await sb.from('reviews').select('*')
@@ -1657,4 +1703,13 @@ export async function updateStockQty(p, val) {
   if (error) { toast('err', 'Error', error.message); return; }
   const idx = products.value.findIndex(x => x.id === p.id);
   if (idx >= 0) products.value[idx].stock_quantity = qty;
+}
+
+// ── QUICK REQUEST WITH QUANTITY ───────────────────────────────────
+export function quickRequestWithQty(p, qty = 1) {
+  if (!profile.value) { showAuth.value = true; return; }
+  rF.product_id = p.id;
+  rF.quantity = qty || 1;
+  rF.platform_type = p.platform_type === 'both' ? 'techmedix' : (p.platform_type || 'techmedix');
+  showReqModal.value = true;
 }
