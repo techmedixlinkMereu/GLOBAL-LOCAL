@@ -1029,6 +1029,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <select v-model="reqFilter" class="sel" style="width:140px;border-radius:var(--rp)"><option value="all">All Statuses</option><option v-for="s in statusList" :key="s.val" :value="s.val">{{  s.label  }}</option></select>
           <select v-model="reqPlatFilter" class="sel" style="width:140px;border-radius:var(--rp)"><option value="all">All Platforms</option><option value="techmedix">TechMedixLink</option><option value="globaldoor">GlobalDoor</option></select>
         </div>
+        <div class="req-cards-grid">
         <div v-if="!filteredMyReqs.length" class="empty fu fu-2"><div class="empty-ico"><i class="fas fa-clipboard-list"></i></div><div class="empty-ttl">No requests yet</div><div class="empty-sub">Browse products and submit your first sourcing request.</div><button @click="goTab('browse')" class="btn btn-p">Browse Products</button></div>
         <div v-for="r in filteredMyReqs" :key="r.id" class="req-card fu fu-2" :style="['cancelled','completed','delivered','installed'].includes(r.status)?'opacity:0.7;':''" >
           <div class="req-hd">
@@ -1157,7 +1158,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
       <!-- ── TRACKING ── -->
-      <div v-if="tab==='tracking'" style="max-width:620px;margin:0 auto">
+      <div v-if="tab==='tracking'">
         <div class="sect-hd fu"><div><div class="sect-ttl">Track Shipment</div><div class="sect-sub">Enter your request number</div></div></div>
         <div class="card fu fu-1" style="margin-bottom:var(--s5)">
           <div style="display:flex;gap:var(--s2)">
