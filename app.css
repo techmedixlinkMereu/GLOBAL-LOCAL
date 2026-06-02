@@ -529,7 +529,7 @@ input,select,textarea{font-family:var(--fb)}
 .admin-mode-tag i{font-size:9px}
 
 /* ── Admin user card grid ── */
-.admin-user-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:var(--s3)}
+.admin-user-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:var(--s3)}
 .admin-user-card{background:white;border:1px solid var(--ln-1);border-radius:var(--r3);padding:var(--s4);cursor:pointer;transition:all 0.15s;box-shadow:var(--sh1);display:grid;grid-template-areas:"av info" "badges badges" "stats stats" "actions actions";grid-template-columns:48px 1fr;gap:var(--s2) var(--s3)}
 .admin-user-card:hover{border-color:var(--philips);box-shadow:var(--sh2);transform:translateY(-1px)}
 .auc-av{grid-area:av;position:relative;width:48px;height:48px;border-radius:50%;background:var(--philips-l);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:var(--philips);align-self:center;overflow:hidden}
@@ -1279,7 +1279,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 /* ── LARGE DESKTOP ≥1280px ── */
 @media (min-width:1280px) {
   .kpi-grid>.kpi { flex:1 1 160px; }
-  .content { padding:var(--s6) var(--s6); max-width:1400px; margin:0 auto; }
+  .content { padding:var(--s5) var(--s6); }
 }
 
 /* ── EXTRA LARGE ≥1600px ── */
@@ -1659,13 +1659,13 @@ body.modal-open { overflow:hidden; }
 /* Large desktop 1281–1600px — 4 columns fixed */
 @media (min-width:1281px) and (max-width:1600px) {
   .prod-grid { grid-template-columns: repeat(4,1fr); }
-  .content   { padding: var(--s5) var(--s6); max-width: 1400px; margin: 0 auto; }
+  .content   { padding: var(--s5) var(--s6); }
 }
 
 /* XL desktop >1600px — 5 columns */
 @media (min-width:1601px) {
   .prod-grid { grid-template-columns: repeat(5,1fr); }
-  .content   { padding: var(--s6) var(--s7); max-width: 1600px; margin: 0 auto; }
+  .content   { padding: var(--s5) var(--s7); }
 }
 
 /* ── Mobile bottom nav layout fix ── */
@@ -1823,4 +1823,63 @@ html, body { overflow-x: hidden; max-width: 100vw; }
 .tb-r { flex-shrink: 0; }
 
 /* Shell overflow fix */
-.shell { overflow-x: hidden; }  
+.shell { overflow-x: hidden; }
+
+/* ── WIDE SCREEN GRID FILLS ── */
+@media (min-width:1400px) {
+  .admin-user-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  .prod-grid        { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  .kpi-grid > .kpi  { flex: 1 1 180px; }
+}
+@media (min-width:1800px) {
+  .admin-user-grid { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+  .prod-grid        { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+}
+/* Kill any remaining centered content wrapper */
+.content > div { width: 100%; }
+
+/* ── WIDE SCREEN LAYOUT — fill the space properly ── */
+
+/* Request cards: 2 columns on wide screens */
+@media (min-width:1200px) {
+  .req-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--s3);
+    align-items: start;
+  }
+}
+
+/* KPI grids fill full width */
+.kpi-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+}
+.kpi-grid > .kpi {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+/* Triage items fill full width */
+.triage-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+.triage-item {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+/* Admin requests table — full width always */
+.tbl-w { width: 100%; }
+
+/* Sect-hd always full width */
+.sect-hd { width: 100%; }
+
+/* All tab content divs fill their parent */
+.content > div[v-if],
+.content > div[v-show] {
+  width: 100%;
+}
