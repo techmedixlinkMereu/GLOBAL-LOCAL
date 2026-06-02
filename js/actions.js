@@ -1647,3 +1647,14 @@ export async function loadTriageCounts() {
     };
   } catch { return { pendingRequests: 0, pendingPayments: 0, verifyRequests: 0 }; }
 }
+
+// ── UPDATE STOCK QUANTITY inline (seller listings) ───────────────
+export async function updateStockQty(p, val) {
+  const qty = Math.max(0, parseInt(val) || 0);
+  const { error } = await sb.from('products')
+    .update({ stock_quantity: qty, updated_at: new Date().toISOString() })
+    .eq('id', p.id);
+  if (error) { toast('err', 'Error', error.message); return; }
+  const idx = products.value.findIndex(x => x.id === p.id);
+  if (idx >= 0) products.value[idx].stock_quantity = qty;
+}
