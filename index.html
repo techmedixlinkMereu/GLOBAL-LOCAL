@@ -11,7 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bree+Serif&family=Nunito+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/svg+xml" href="favicon.svg" onerror="this.remove()">
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgo=" sizes="32x32">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0066a1">
 <meta name="mobile-web-app-capable" content="yes">
@@ -2865,7 +2866,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <button @click="showProductDetail=false;goTab('browse')" class="btn btn-g btn-sm" style="flex:1"><i class="fas fa-arrow-left"></i>Back</button>
             <button v-if="canBuy" @click="addToBasket(viewedProduct)" class="btn btn-s btn-sm btn-sq" title="Save to basket for later"><i class="fas fa-basket-shopping" style="font-size:11px"></i></button>
             <button v-if="canBuy" @click="showReqModal=true;rF.source_type='manual';rF.custom_name=viewedProduct.name;showProductDetail=false" class="btn btn-s btn-sm" style="flex:1" title="Custom request"><i class="fas fa-pen"></i>Custom</button>
-            <a :href="'https://wa.me/?text='+encodeURIComponent('Check out '+viewedProduct.name+' on TechMedixLink: $'+Math.round(viewedProduct.base_price_usd)+' USD — '+window.location.href)" target="_blank" class="btn btn-g btn-sm btn-sq" title="Share on WhatsApp" style="background:rgba(37,211,102,0.1);border-color:rgba(37,211,102,0.3);color:#1a8a3a"><i class="fab fa-whatsapp" style="font-size:14px"></i></a>
+            <a :href="'https://wa.me/?text='+encodeURIComponent('Check out '+viewedProduct.name+' on TechMedixLink — '+tzs(Math.round(viewedProduct.base_price_usd*(usdToTzs||2672)))+'. Visit: https://techmedixlinkmereu.github.io/GLOBAL-LOCAL')" target="_blank" class="btn btn-g btn-sm btn-sq" title="Share on WhatsApp" style="background:rgba(37,211,102,0.1);border-color:rgba(37,211,102,0.3);color:#1a8a3a"><i class="fab fa-whatsapp" style="font-size:14px"></i></a>
           </div>
         </div>
 
