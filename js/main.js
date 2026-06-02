@@ -14,6 +14,17 @@ const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
 const app = createApp({
   setup() {
 
+    // Landing page filtered products
+    const lpFilteredProducts = computed(() => {
+      let list = S.products.value.filter(p => p.is_active);
+      if (S.lpCatFilter.value !== 'all') list = list.filter(p => p.product_type === S.lpCatFilter.value);
+      if (S.lpTmdaOnly.value) list = list.filter(p => p.tmda_certified);
+      if (S.lpSort.value === 'price_asc')  list = [...list].sort((a,b) => a.base_price_usd - b.base_price_usd);
+      if (S.lpSort.value === 'price_desc') list = [...list].sort((a,b) => b.base_price_usd - a.base_price_usd);
+      if (S.lpSort.value === 'tmda')       list = [...list].sort((a,b) => (b.tmda_certified?1:0) - (a.tmda_certified?1:0));
+      return list;
+    });
+
     // FIX 17: Products loading skeleton state
     const productsLoading = computed(() => S.products.value.length === 0 && S.loading.value);
 
@@ -82,7 +93,23 @@ const app = createApp({
       const shipping = Math.round(items * TECHMEDIX_CONFIG.app.shippingPercent);
       const duty     = S.rF.platform_type === 'globaldoor' ? Math.round(items * ((p.import_duty_percent || 25) / 100)) : 0;
       const fee      = Math.round((items + shipping + duty) * TECHMEDIX_CONFIG.app.serviceFeePercent);
-      return { items, shipping, duty, fee, total: items + shipping + duty + fee };
+      // Lightbox navigation
+    function lightboxPrev() {
+      if (!S.viewedProduct.value) return;
+      const all = [S.viewedProduct.value.image_url, ...(S.viewedProduct.value.images||[])].filter(Boolean);
+      const cur = all.indexOf(S.lightboxImg.value);
+      S.lightboxIndex.value = Math.max(0, cur - 1);
+      S.lightboxImg.value = all[S.lightboxIndex.value];
+    }
+    function lightboxNext() {
+      if (!S.viewedProduct.value) return;
+      const all = [S.viewedProduct.value.image_url, ...(S.viewedProduct.value.images||[])].filter(Boolean);
+      const cur = all.indexOf(S.lightboxImg.value);
+      S.lightboxIndex.value = Math.min(all.length - 1, cur + 1);
+      S.lightboxImg.value = all[S.lightboxIndex.value];
+    }
+
+    return { items, shipping, duty, fee, total: items + shipping + duty + fee };
     });
 
     // ── Computed: basket ────────────────────────────────────────
@@ -493,7 +520,7 @@ const app = createApp({
       ...S,
 
       // Computed (defined in main.js)
-      isAdmin, canBuy, canSell, pageTitle, primaryLabel, userInitial, today, productsLoading, isOffline, anyModalOpen, filteredAdminProds,
+      isAdmin, canBuy, canSell, pageTitle, primaryLabel, userInitial, today, productsLoading, isOffline, anyModalOpen, filteredAdminProds, reqCatalogSearch: S.reqCatalogSearch, lpFilteredProducts,
       unreadCount, uniqueCats, groupedNotifications,
       myRequests, myListings, incomingReqs, myActiveReqs, myDoneReqs,
       myTotalSpent, myBalanceDue, pendingPayCount, pendingAdminCount, avgListingPrice,
@@ -513,6 +540,8 @@ const app = createApp({
 
       // Actions
       ...A,
+      quickRequestWithQty: A.quickRequestWithQty,
+      lightboxPrev, lightboxNext,
 
       // Wrappers (need computed values from this scope)
       goTab, primaryAction, saveReq, submitBasket,
