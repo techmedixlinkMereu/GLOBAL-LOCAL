@@ -9,7 +9,7 @@ import * as F from './formatters.js';
 import { sb } from './db.js';
 import { TECHMEDIX_CONFIG } from '../config.js';
 
-const { createApp, computed, watch, onMounted, nextTick } = Vue;
+const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
 
 const app = createApp({
   setup() {
@@ -319,7 +319,7 @@ const app = createApp({
 
     // FIX 13: Update document title on tab change
     // FIX 9: Offline detection
-    const isOffline = Vue.ref(!navigator.onLine);
+    const isOffline = ref(!navigator.onLine);
     window.addEventListener('online',  () => { isOffline.value = false; S.toast('ok', 'Back online'); });
     window.addEventListener('offline', () => { isOffline.value = true; });
 
@@ -503,7 +503,7 @@ const app = createApp({
       pStats, adminTriage, profileCompletion,
       allUsersSelected, allProductsSelected,
 
-      // Formatters (bound for template use) 
+      // Formatters (bound for template use)
       fNum: F.fNum, tzs: F.tzs, fDate: F.fDate, fDateTime: F.fDateTime,
       fEvent: F.fEvent, fCountdown: F.fCountdown, stockLabel: F.stockLabel,
       stockClass: F.stockClass, roleLabel: F.roleLabel, roleIcon: F.roleIcon,
