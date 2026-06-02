@@ -186,6 +186,16 @@ export const userTotal = ref(0);
 
 // ── New UI state (improvements batch) ────────────────────────────
 export const showSearchOverlay   = ref(false);
+export const showReqSuccess      = ref(false);
+export const showLightbox         = ref(false);
+export const lightboxImg          = ref('');
+export const lightboxIndex        = ref(0);
+export const pdQty                = ref(1);
+export const lastReqNumber        = ref('');
+export const reqCatalogSearch     = ref('');
+export const lpCatFilter          = ref('all');
+export const lpTmdaOnly           = ref(false);
+export const lpSort               = ref('newest');
 export const basketRestored      = ref(false);
 export const adminProdSearch     = ref('');
 export const rateAgeDisplay      = ref('');
@@ -203,6 +213,8 @@ export const unreadMessageCounts = ref({});
 export const selectedUserIds    = ref(new Set());
 export const selectedProductIds = ref(new Set());
 export const bulkActionLoading  = ref(false);
+
+export const notifTypeFilter  = ref('all');
 
 // ── Toasts ───────────────────────────────────────────────────────
 export const toasts = ref([]);
