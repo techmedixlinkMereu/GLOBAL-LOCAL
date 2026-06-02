@@ -536,7 +536,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </transition>
     <!-- Topbar -->
     <header class="topbar">
-      <div class="tb-l">
+      <div class="tb-l" style="min-width:0;flex:1">
         <button class="mob-btn" @click="sidebarOpen=!sidebarOpen"><i class="fas fa-bars"></i></button>
         <button class="mob-search-btn" @click.stop="$event.target.closest('.main').querySelector('.mob-search-bar').classList.toggle('open')"><i class="fas fa-search"></i></button>
         <div class="page-ttl">{{  pageTitle  }}</div>
@@ -545,7 +545,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div v-else class="plat-tag"><i :class="platform==='techmedix'?'fas fa-heart-pulse':'fas fa-globe'"></i>{{  platform==='techmedix'?'TechMedixLink':'Global Door'  }}</div>
       </div>
-      <div class="tb-r">
+      <div class="tb-r" style="flex-shrink:0">
         <div class="srch-w"><i class="fas fa-search"></i><input type="text" v-model="globalSearch" placeholder="Search products…" @keydown.enter="performSearch"></div>
         <div v-if="profile && basketCount>0" class="tb-ico" @click="showBasket=true" title="Procurement basket" style="position:relative">
           <i class="fas fa-basket-shopping"></i>
@@ -613,7 +613,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     <!-- USER PANEL -->
     <transition name="slide">
-      <div v-if="showUserPanel && profile" class="dd-ov" style="width:240px" @click.stop>
+      <div v-if="showUserPanel && profile" class="dd-ov" style="width:min(240px,calc(100vw - 24px))" @click.stop>
         <div style="padding:var(--s3) var(--s3) var(--s3)">
           <div style="display:flex;align-items:center;gap:var(--s3);margin-bottom:var(--s3)">
             <div style="width:44px;height:44px;border-radius:50%;border:2px solid var(--philips-l);overflow:hidden;flex-shrink:0;background:var(--philips-l);display:flex;align-items:center;justify-content:center">
@@ -902,10 +902,10 @@ document.addEventListener('DOMContentLoaded', () => {
         <!-- Filters -->
         <div class="card fu fu-1" style="margin-bottom:var(--s3)">
           <div style="display:flex;gap:var(--s2);flex-wrap:wrap;margin-bottom:var(--s3)">
-            <div style="flex:1;min-width:180px;position:relative"><i class="fas fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--tx-3);font-size:10px;pointer-events:none"></i><input type="text" v-model="prodSearch" placeholder="Search name, brand, location…" class="inp" style="padding-left:34px;border-radius:var(--rp)"></div>
-            <select v-model="prodFilter" class="sel" :class="prodFilter!=='all'?'sel-active':''" style="width:148px;border-radius:var(--rp)"><option value="all">All Platforms</option><option value="techmedix">TechMedixLink</option><option value="globaldoor">GlobalDoor</option><option value="tmda">TMDA Certified</option><option value="local">Tanzania Stock</option><option value="international">International</option></select>
-            <select v-model="prodTypeFilter" class="sel" :class="prodTypeFilter!=='all'?'sel-active':''" style="width:148px;border-radius:var(--rp)"><option value="all">All Types</option><option value="medical_device">Medical Device</option><option value="medical_supply">Medical Supply</option><option value="electronics">Electronics</option><option value="lab_equipment">Lab Equipment</option><option value="other">Other</option></select>
-            <select v-model="sortProd" class="sel" :class="sortProd!=='newest'?'sel-active':''" style="width:128px;border-radius:var(--rp)"><option value="newest">Newest First</option><option value="price_asc">Price: Low→High</option><option value="price_desc">Price: High→Low</option><option value="name">Name A–Z</option></select>
+            <div style="flex:1;min-width:0;position:relative"><i class="fas fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--tx-3);font-size:10px;pointer-events:none"></i><input type="text" v-model="prodSearch" placeholder="Search name, brand, location…" class="inp" style="padding-left:34px;border-radius:var(--rp)"></div>
+            <select v-model="prodFilter" class="sel" :class="prodFilter!=='all'?'sel-active':''" style="min-width:0;flex:1 1 130px;border-radius:var(--rp)"><option value="all">All Platforms</option><option value="techmedix">TechMedixLink</option><option value="globaldoor">GlobalDoor</option><option value="tmda">TMDA Certified</option><option value="local">Tanzania Stock</option><option value="international">International</option></select>
+            <select v-model="prodTypeFilter" class="sel" :class="prodTypeFilter!=='all'?'sel-active':''" style="min-width:0;flex:1 1 130px;border-radius:var(--rp)"><option value="all">All Types</option><option value="medical_device">Medical Device</option><option value="medical_supply">Medical Supply</option><option value="electronics">Electronics</option><option value="lab_equipment">Lab Equipment</option><option value="other">Other</option></select>
+            <select v-model="sortProd" class="sel" :class="sortProd!=='newest'?'sel-active':''" style="min-width:0;flex:1 1 110px;border-radius:var(--rp)"><option value="newest">Newest First</option><option value="price_asc">Price: Low→High</option><option value="price_desc">Price: High→Low</option><option value="name">Name A–Z</option></select>
           </div>
           <div style="display:flex;align-items:center;gap:var(--s4);flex-wrap:wrap">
             <label class="chk"><input type="checkbox" v-model="filterTmda"><span class="chk-lbl" style="font-size:var(--txs)"><i class="fas fa-certificate" style="color:var(--ok);font-size:9px;margin-right:3px"></i>TMDA Certified only</span></label>
@@ -918,7 +918,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <input type="number" v-model.number="priceMax" placeholder="Max" class="inp" style="width:80px;padding:5px 8px;font-size:var(--txs)">
             </div>
             <!-- Manufacturer -->
-            <input type="text" v-model="manufFilter" placeholder="Filter by manufacturer..." class="inp" style="width:180px;border-radius:var(--rp);font-size:var(--txs)" list="manuf-list">
+            <input type="text" v-model="manufFilter" placeholder="Filter by manufacturer..." class="inp" style="min-width:0;flex:1 1 150px;border-radius:var(--rp);font-size:var(--txs)" list="manuf-list">
             <datalist id="manuf-list">
               <option v-for="m in allManufacturers" :key="m" :value="m"></option>
             </datalist>
@@ -1511,23 +1511,23 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <!-- Admin summary strip -->
         <div class="fu fu-1" style="display:flex;gap:var(--s3);margin-bottom:var(--s4);flex-wrap:wrap">
-          <div class="card-sm" style="flex:1;min-width:120px;display:flex;align-items:center;gap:10px;cursor:pointer" @click="adminSubTab='requests';adminReqFilter='all'" title="View all requests">
+          <div class="card-sm" style="flex:1 1 140px;min-width:0;display:flex;align-items:center;gap:10px;cursor:pointer" @click="adminSubTab='requests';adminReqFilter='all'" title="View all requests">
             <div style="width:32px;height:32px;border-radius:var(--r2);background:var(--philips-l);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fas fa-clipboard-list" style="color:var(--philips);font-size:12px"></i></div>
             <div><div style="font-size:18px;font-weight:700;font-family:var(--fm);color:var(--tx-1)">{{ allRequests.length }}</div><div style="font-size:10px;color:var(--tx-3)">Total requests</div></div>
           </div>
-          <div class="card-sm" style="flex:1;min-width:120px;display:flex;align-items:center;gap:10px">
+          <div class="card-sm" style="flex:1 1 140px;min-width:0;display:flex;align-items:center;gap:10px">
             <div style="width:32px;height:32px;border-radius:var(--r2);background:var(--warn-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fas fa-clock" style="color:var(--warn);font-size:12px"></i></div>
             <div><div style="font-size:18px;font-weight:700;font-family:var(--fm);color:var(--warn)">{{ allRequests.filter(r=>r.status==='pending').length }}</div><div style="font-size:10px;color:var(--tx-3)">Pending review</div></div>
           </div>
-          <div class="card-sm" style="flex:1;min-width:120px;display:flex;align-items:center;gap:10px">
+          <div class="card-sm" style="flex:1 1 140px;min-width:0;display:flex;align-items:center;gap:10px">
             <div style="width:32px;height:32px;border-radius:var(--r2);background:var(--warn-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fas fa-credit-card" style="color:var(--warn);font-size:12px"></i></div>
             <div><div style="font-size:18px;font-weight:700;font-family:var(--fm);color:var(--warn)">{{ payments.filter(p=>p.status==='pending').length }}</div><div style="font-size:10px;color:var(--tx-3)">Payments to confirm</div></div>
           </div>
-          <div class="card-sm" style="flex:1;min-width:120px;display:flex;align-items:center;gap:10px">
+          <div class="card-sm" style="flex:1 1 140px;min-width:0;display:flex;align-items:center;gap:10px">
             <div style="width:32px;height:32px;border-radius:var(--r2);background:var(--ok-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fas fa-users" style="color:var(--ok);font-size:12px"></i></div>
             <div><div style="font-size:18px;font-weight:700;font-family:var(--fm);color:var(--tx-1)">{{ adminUsers.length }}</div><div style="font-size:10px;color:var(--tx-3)">Registered users</div></div>
           </div>
-          <div class="card-sm" style="flex:1;min-width:120px;display:flex;align-items:center;gap:10px">
+          <div class="card-sm" style="flex:1 1 140px;min-width:0;display:flex;align-items:center;gap:10px">
             <div style="width:32px;height:32px;border-radius:var(--r2);background:var(--ok-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fas fa-coins" style="color:var(--ok);font-size:12px"></i></div>
             <div><div style="font-size:14px;font-weight:700;font-family:var(--fm);color:var(--ok)">{{ tzs(allRequests.reduce((s,r)=>s+(r.deposit_paid||0),0)) }}</div><div style="font-size:10px;color:var(--tx-3)">Total collected</div></div>
           </div>
@@ -1599,11 +1599,11 @@ document.addEventListener('DOMContentLoaded', () => {
         <!-- Payments table -->
         <div v-if="adminSubTab==='payments'" class="fu fu-2">
           <div style="display:flex;gap:var(--s3);margin-bottom:var(--s3);flex-wrap:wrap">
-            <div class="card-sm" style="flex:1;min-width:120px;display:flex;align-items:center;gap:10px">
+            <div class="card-sm" style="flex:1 1 140px;min-width:0;display:flex;align-items:center;gap:10px">
               <div style="width:28px;height:28px;border-radius:var(--r2);background:var(--ok-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fas fa-check-circle" style="color:var(--ok);font-size:11px"></i></div>
               <div><div style="font-size:14px;font-weight:700;font-family:var(--fm);color:var(--ok)">{{ tzs(payments.filter(p=>p.status==='completed').reduce((s,p)=>s+(p.amount||0),0)) }}</div><div style="font-size:10px;color:var(--tx-3)">Confirmed revenue</div></div>
             </div>
-            <div class="card-sm" style="flex:1;min-width:120px;display:flex;align-items:center;gap:10px">
+            <div class="card-sm" style="flex:1 1 140px;min-width:0;display:flex;align-items:center;gap:10px">
               <div style="width:28px;height:28px;border-radius:var(--r2);background:var(--warn-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fas fa-clock" style="color:var(--warn);font-size:11px"></i></div>
               <div><div style="font-size:14px;font-weight:700;font-family:var(--fm);color:var(--warn)">{{ tzs(payments.filter(p=>p.status==='pending').reduce((s,p)=>s+(p.amount||0),0)) }}</div><div style="font-size:10px;color:var(--tx-3)">Pending {{ payments.filter(p=>p.status==='pending').length }} payments</div></div>
             </div>
@@ -1739,8 +1739,8 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <!-- Per-product breakdown -->
           <div class="sect-hd fu fu-2" style="margin-top:var(--s4)"><div><div class="sect-ttl" style="font-size:17px">Product performance</div></div></div>
-          <div class="tbl-w fu fu-2">
-            <table class="tbl">
+          <div class="tbl-w fu fu-2" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+            <table class="tbl" style="min-width:580px">
               <thead><tr><th>Product</th><th>Price</th><th>Stock</th><th>Inquiries</th><th>Converted</th><th>Revenue</th><th>Actions</th></tr></thead>
               <tbody>
                 <tr v-for="p in myListings" :key="p.id">
@@ -1997,7 +1997,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="fg"><label class="lbl">District</label><input type="text" v-model="addrF.district" class="inp" placeholder="e.g. Ilala"></div>
             </div>
             <div class="fg" style="margin-bottom:var(--s2)"><label class="lbl">Street / Road</label><input type="text" v-model="addrF.street" class="inp" placeholder="e.g. Samora Avenue"></div>
-            <button @click="saveAddress().then(()=>{ rF.address_id=addresses[addresses.length-1]?.id||''; addingAddress=false })" class="btn btn-ok btn-sm" :disabled="!addrF.region"><i class="fas fa-check"></i>Save & Select</button>
+            <button @click="saveAddress();addingAddress=false" class="btn btn-ok btn-sm" :disabled="!addrF.region"><i class="fas fa-check"></i>Save & Select</button>
           </div>
         </div>
         <div class="fg"><label class="lbl">Delivery Notes / Specifications</label><textarea v-model="rF.notes" class="tex" placeholder="Delivery address, special requirements, product specifications…"></textarea></div>
@@ -2356,7 +2356,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="modal-hd"><div><div class="modal-ttl">Send Quotation</div><div class="modal-sub">{{  quoteReq?.request_number  }}</div></div><button class="modal-x" @click="showQuoteModal=false"><i class="fas fa-times"></i></button></div>
       <div class="modal-body">
         <div class="info-strip in"><i class="fas fa-info-circle" style="color:var(--info);flex-shrink:0"></i><div style="font-size:var(--txs);color:var(--info);line-height:1.5">Set the exact costs below. When sent, the buyer will be notified to review and accept or decline.</div></div>
-        <div class="fr2">
+        <div class="fr2" style="grid-template-columns:1fr 1fr">
           <div class="fg"><label class="lbl req">Item Cost (TZS)</label><input type="number" v-model.number="qF.item_cost" min="0" class="inp"></div>
           <div class="fg"><label class="lbl req">Shipping Cost (TZS)</label><input type="number" v-model.number="qF.shipping_cost" min="0" class="inp"></div>
         </div>
