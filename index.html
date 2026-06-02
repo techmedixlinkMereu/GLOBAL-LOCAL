@@ -31,7 +31,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="TechMedixLink · Medical Equipment Platform">
 <meta name="twitter:description" content="Tanzania's premier medical equipment sourcing and procurement marketplace.">
-<link rel="stylesheet" href="app.css?v10">
+<link rel="stylesheet" href="app.css?v15">
 <style>
 @keyframes skeleton-pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .basket-pulse .fa-basket-shopping{animation:basket-bounce 0.4s ease}
@@ -45,6 +45,14 @@
 .skeleton { background: linear-gradient(90deg, var(--bg-2) 25%, var(--bg-3) 50%, var(--bg-2) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 6px; }
 @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 </style>
+<!-- Google Analytics 4 — replace G-XXXXXXXXXX with your actual GA4 ID -->
+<!-- <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXXXXX');
+</script> -->
 <script>
 // Hide loader once Vue mounts
 document.addEventListener('DOMContentLoaded', () => {
@@ -592,7 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div v-if="unreadCount>0" style="font-size:10px;font-weight:600;color:var(--philips);padding:4px var(--s3);background:var(--philips-l);border-radius:var(--r1);margin-bottom:var(--s2);text-align:center">
           {{ unreadCount }} unread notification{{ unreadCount>1?'s':'' }}
         </div>
-        <div v-for="n in notifications" :key="n.id"
+        <div v-for="n in notifications.filter(n=>notifTypeFilter==='all'||n.notification_type===notifTypeFilter)" :key="n.id"
           class="feed-row notif-row"
           @click="clickNotification(n)"
           :class="!n.is_read?'notif-unread':''"
@@ -678,6 +686,14 @@ document.addEventListener('DOMContentLoaded', () => {
                   <span>WhatsApp Updates</span>
                 </div>
               </div>
+              <!-- WhatsApp CTA -->
+              <div style="margin-top:var(--s3);display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap">
+                <span style="font-size:11px;color:rgba(255,255,255,0.5)">Questions before ordering?</span>
+                <a href="https://wa.me/34659447627?text=Hi%20TechMedixLink%2C%20I%20have%20a%20question%20about%20medical%20equipment" target="_blank"
+                  style="display:inline-flex;align-items:center;gap:6px;background:rgba(37,211,102,0.15);border:1px solid rgba(37,211,102,0.35);border-radius:99px;padding:5px 14px;font-size:11px;font-weight:600;color:#4ade80;text-decoration:none">
+                  <i class="fab fa-whatsapp" style="font-size:13px"></i>+34 659 447 627
+                </a>
+              </div>
             </div>
             <!-- Live stats — 2x2 grid -->
             <div class="lp-stats">
@@ -738,7 +754,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span style="color:var(--ln-2)">·</span>
                     <i class="fas fa-location-dot" style="font-size:8px"></i>{{  p.country||'Tanzania'  }}
                   </div>
-                  <div style="font-size:10px;color:var(--tx-3);line-height:1.4;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{  p.description||'Quality medical equipment for healthcare facilities.'  }}</div>
+                  <div style="font-size:10px;color:var(--tx-3);line-height:1.4;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{  p.description  }}</div>
                   <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px">
                     <span style="font-family:var(--fb);font-size:20px;font-weight:800;color:var(--tx-1)">${{  fNum(p.base_price_usd)  }}</span>
                     <span style="font-size:10px;color:var(--tx-3)">USD</span>
@@ -769,9 +785,163 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="lp-cats">
             <div class="lp-cat" @click="goTab('browse');prodTypeFilter='medical_device'"><i class="fas fa-stethoscope"></i><span>Medical Devices</span></div>
             <div class="lp-cat" @click="goTab('browse');prodTypeFilter='medical_supply'"><i class="fas fa-box-open"></i><span>Medical Supplies</span></div>
-            <div class="lp-cat" @click="goTab('browse');prodTypeFilter='electronics'"><i class="fas fa-microchip"></i><span>Electronics</span></div>
+            <div class="lp-cat" @click="goTab('browse');prodTypeFilter='laboratory'"><i class="fas fa-flask"></i><span>Laboratory</span></div>
             <div class="lp-cat" @click="goTab('browse');filterTmda=true"><i class="fas fa-certificate"></i><span>TMDA Certified</span></div>
             <div class="lp-cat" @click="goTab('browse');prodFilter='globaldoor'"><i class="fas fa-globe"></i><span>International</span></div>
+          </div>
+
+          <!-- ═══════════════════════════════════════════════
+               SCROLLABLE PRODUCT DISCOVERY SECTION
+               Visible to ALL users — no login required
+          ══════════════════════════════════════════════════ -->
+
+          <!-- ALL PRODUCTS GRID — inline, no tab switch required -->
+          <div class="lp-section-ttl" style="margin-top:var(--s6);display:flex;align-items:center;justify-content:space-between">
+            <span>All products <span style="font-size:12px;font-weight:400;color:var(--tx-4)">({{ products.filter(p=>p.is_active).length }} available)</span></span>
+            <div style="display:flex;gap:var(--s2);align-items:center">
+              <select v-model="lpSort" class="sel" style="font-size:11px;padding:4px 10px;border-radius:99px;height:auto">
+                <option value="newest">Newest first</option>
+                <option value="price_asc">Price: Low to High</option>
+                <option value="price_desc">Price: High to Low</option>
+                <option value="tmda">TMDA Certified first</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Category filter pills -->
+          <div style="display:flex;gap:var(--s2);flex-wrap:wrap;margin-bottom:var(--s4)">
+            <button @click="lpCatFilter='all'" class="cat-pill" :class="{active:lpCatFilter==='all'}"><i class="fas fa-th-large"></i>All</button>
+            <button @click="lpCatFilter='medical_device'" class="cat-pill" :class="{active:lpCatFilter==='medical_device'}"><i class="fas fa-stethoscope"></i>Medical Devices</button>
+            <button @click="lpCatFilter='diagnostic'" class="cat-pill" :class="{active:lpCatFilter==='diagnostic'}"><i class="fas fa-microscope"></i>Diagnostics</button>
+            <button @click="lpCatFilter='surgical'" class="cat-pill" :class="{active:lpCatFilter==='surgical'}"><i class="fas fa-scalpel"></i>Surgical</button>
+            <button @click="lpCatFilter='laboratory'" class="cat-pill" :class="{active:lpCatFilter==='laboratory'}"><i class="fas fa-flask"></i>Laboratory</button>
+            <button @click="lpCatFilter='monitoring'" class="cat-pill" :class="{active:lpCatFilter==='monitoring'}"><i class="fas fa-heartbeat"></i>Monitoring</button>
+            <button @click="lpTmdaOnly=!lpTmdaOnly" class="cat-pill cat-pill-gold" :class="{active:lpTmdaOnly}"><i class="fas fa-certificate"></i>TMDA Only</button>
+          </div>
+
+          <!-- Product grid — clickable without login -->
+          <div class="lp-prod-grid">
+            <div v-for="p in lpFilteredProducts" :key="p.id"
+              class="lp-pg-card"
+              @click="openProductDetail(p)">
+              <!-- Image -->
+              <div class="lp-pg-img">
+                <img v-if="p.image_url" :src="p.image_url" :alt="p.name" loading="lazy">
+                <div v-else class="lp-pg-ph">
+                  <i :class="p.product_type==='medical_device'?'fas fa-stethoscope':p.product_type==='surgical'?'fas fa-scalpel':p.product_type==='laboratory'?'fas fa-flask':'fas fa-boxes-stacked'"></i>
+                </div>
+                <!-- Photo count badge -->
+                <div v-if="p.images?.length" class="lp-pg-photo-count">
+                  <i class="fas fa-camera" style="font-size:8px"></i> {{ p.images.length + 1 }}
+                </div>
+                <!-- TMDA badge -->
+                <div v-if="p.tmda_certified" class="lp-pg-tmda">
+                  <i class="fas fa-certificate" style="font-size:8px"></i> TMDA
+                </div>
+              </div>
+              <!-- Body -->
+              <div class="lp-pg-body">
+                <div class="lp-pg-name">{{ p.name }}</div>
+                <div class="lp-pg-mfr">{{ p.manufacturer || 'TechMedixLink' }}</div>
+                <!-- Stars -->
+                <div style="display:flex;align-items:center;gap:2px;margin:4px 0">
+                  <i v-for="s in 5" :key="s" class="fas fa-star" :style="s<=(p.avg_rating||0)?'color:#f0a500;font-size:9px':'color:var(--bg-4);font-size:9px'"></i>
+                  <span style="font-size:9px;color:var(--tx-4);margin-left:3px">({{ p.review_count||0 }})</span>
+                </div>
+                <!-- Price -->
+                <div class="lp-pg-price">${{ fNum(p.base_price_usd) }} <span style="font-size:10px;font-weight:400;color:var(--tx-3)">USD</span></div>
+                <div style="font-size:10px;color:var(--tx-3);font-family:var(--fm)">≈ {{ tzs(Math.round(p.base_price_usd*usdToTzs)) }}</div>
+                <!-- Delivery estimate -->
+                <div class="lp-pg-delivery">
+                  <i class="fas fa-truck" style="font-size:9px"></i>
+                  Est. {{ p.delivery_days_min||7 }}–{{ p.delivery_days_max||21 }} days
+                </div>
+              </div>
+              <!-- Hover CTA overlay -->
+              <div class="lp-pg-overlay">
+                <button @click.stop="openProductDetail(p)" class="btn btn-p btn-sm lp-pg-cta">
+                  <i class="fas fa-expand-alt"></i>View Details
+                </button>
+                <button @click.stop="profile?quickRequest(p):(showAuth=true)" class="btn btn-s btn-sm lp-pg-cta" style="margin-top:6px">
+                  <i class="fas fa-cart-plus"></i>{{ profile?'Request':'Sign in to Request' }}
+                </button>
+              </div>
+            </div>
+            <!-- Empty state -->
+            <div v-if="!lpFilteredProducts.length" style="grid-column:1/-1;text-align:center;padding:var(--s6);color:var(--tx-3)">
+              <i class="fas fa-box-open" style="font-size:32px;display:block;margin-bottom:var(--s3);opacity:0.3"></i>
+              No products match this filter yet
+            </div>
+          </div>
+
+          <!-- Load more / see all CTA -->
+          <div v-if="lpFilteredProducts.length >= 8" style="text-align:center;margin-top:var(--s5)">
+            <button @click="goTab('browse')" class="btn btn-s lp-see-all-btn">
+              <i class="fas fa-th-large"></i>See all products in full browse view
+              <i class="fas fa-arrow-right" style="font-size:11px"></i>
+            </button>
+          </div>
+
+          <!-- ── HOW IT WORKS ── -->
+          <div class="lp-how">
+            <div class="lp-section-ttl" style="color:var(--tx-1);margin-bottom:var(--s5)">How TechMedixLink works</div>
+            <div class="lp-how-grid">
+              <div class="lp-how-step">
+                <div class="lp-how-num">1</div>
+                <div class="lp-how-ico"><i class="fas fa-magnifying-glass"></i></div>
+                <div class="lp-how-ttl">Browse & discover</div>
+                <div class="lp-how-desc">Scroll through our catalogue of TMDA-certified equipment. Found something elsewhere? Paste any product URL — Amazon, Alibaba, anywhere.</div>
+              </div>
+              <div class="lp-how-step">
+                <div class="lp-how-num">2</div>
+                <div class="lp-how-ico" style="background:rgba(0,168,176,0.12);color:var(--siemens-teal)"><i class="fas fa-file-invoice-dollar"></i></div>
+                <div class="lp-how-ttl">Get a quote in 24h</div>
+                <div class="lp-how-desc">Submit your request. Our team sources the best price, handles customs clearance, and sends you a full cost breakdown within 24 hours.</div>
+              </div>
+              <div class="lp-how-step">
+                <div class="lp-how-num">3</div>
+                <div class="lp-how-ico" style="background:rgba(37,211,102,0.12);color:#1a8a3a"><i class="fas fa-mobile-screen-button"></i></div>
+                <div class="lp-how-ttl">Pay via M-Pesa</div>
+                <div class="lp-how-desc">Approve the quote and pay a deposit via M-Pesa, bank transfer, or mobile money. All amounts in TZS — no foreign exchange hassle.</div>
+              </div>
+              <div class="lp-how-step">
+                <div class="lp-how-num">4</div>
+                <div class="lp-how-ico" style="background:rgba(80,60,180,0.10);color:#6050c0"><i class="fas fa-location-dot"></i></div>
+                <div class="lp-how-ttl">Track to your door</div>
+                <div class="lp-how-desc">Real-time tracking from sourcing through customs to delivery. WhatsApp notifications at every stage. Confirm receipt and leave a review.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── TRUST SECTION ── -->
+          <div class="lp-trust-section">
+            <div class="lp-trust-section-grid">
+              <div class="lp-trust-block">
+                <div class="lp-trust-block-ico"><i class="fas fa-shield-halved"></i></div>
+                <div class="lp-trust-block-ttl">TMDA Compliant</div>
+                <div class="lp-trust-block-desc">Every medical device sourced through TechMedixLink meets Tanzania Medicine and Medical Devices Authority certification standards.</div>
+              </div>
+              <div class="lp-trust-block">
+                <div class="lp-trust-block-ico" style="background:rgba(0,168,176,0.1);color:var(--siemens-teal)"><i class="fas fa-lock"></i></div>
+                <div class="lp-trust-block-ttl">Secure payments</div>
+                <div class="lp-trust-block-desc">Pay in TZS via M-Pesa or bank transfer. Deposits are held securely until your order is confirmed and sourcing begins.</div>
+              </div>
+              <div class="lp-trust-block">
+                <div class="lp-trust-block-ico" style="background:rgba(37,211,102,0.1);color:#1a8a3a"><i class="fab fa-whatsapp"></i></div>
+                <div class="lp-trust-block-ttl">WhatsApp support</div>
+                <div class="lp-trust-block-desc">Direct line to our team throughout your order. Questions about a product, delivery timeline, or customs? Message us any time.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── FINAL CTA ── -->
+          <div class="lp-final-cta">
+            <div class="lp-final-cta-ttl">Ready to source medical equipment?</div>
+            <div class="lp-final-cta-sub">Join hospitals, clinics, and procurement officers across Tanzania.</div>
+            <div style="display:flex;gap:var(--s3);justify-content:center;flex-wrap:wrap;margin-top:var(--s4)">
+              <button @click="showAuth=true" class="btn btn-p" style="padding:14px 32px;font-size:15px;font-weight:700"><i class="fas fa-rocket"></i>Create Free Account</button>
+              <a href="https://wa.me/34659447627?text=Hi%20TechMedixLink%2C%20I%20want%20to%20know%20more" target="_blank" class="btn btn-s" style="padding:14px 32px;font-size:15px;font-weight:700;text-decoration:none"><i class="fab fa-whatsapp" style="color:#25d366"></i>Chat with us first</a>
+            </div>
           </div>
 
         </div>
@@ -935,6 +1105,16 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
         <!-- Product grid -->
+        <!-- Category quick filter pills -->
+        <div style="display:flex;gap:var(--s2);flex-wrap:wrap;margin-bottom:var(--s3)" class="fu fu-1">
+          <button @click="prodTypeFilter='all'" class="cat-pill" :class="{active:prodTypeFilter==='all'}"><i class="fas fa-th-large"></i>All</button>
+          <button @click="prodTypeFilter='medical_device'" class="cat-pill" :class="{active:prodTypeFilter==='medical_device'}"><i class="fas fa-stethoscope"></i>Medical Devices</button>
+          <button @click="prodTypeFilter='diagnostic'" class="cat-pill" :class="{active:prodTypeFilter==='diagnostic'}"><i class="fas fa-microscope"></i>Diagnostics</button>
+          <button @click="prodTypeFilter='surgical'" class="cat-pill" :class="{active:prodTypeFilter==='surgical'}"><i class="fas fa-scalpel"></i>Surgical</button>
+          <button @click="prodTypeFilter='laboratory'" class="cat-pill" :class="{active:prodTypeFilter==='laboratory'}"><i class="fas fa-flask"></i>Laboratory</button>
+          <button @click="prodTypeFilter='monitoring'" class="cat-pill" :class="{active:prodTypeFilter==='monitoring'}"><i class="fas fa-heartbeat"></i>Monitoring</button>
+          <button @click="filterTmda=!filterTmda" class="cat-pill cat-pill-gold" :class="{active:filterTmda}"><i class="fas fa-certificate"></i>TMDA Only</button>
+        </div>
         <!-- Loading skeleton -->
         <div v-if="loading && !filteredProds.length" class="prod-grid fu fu-2">
           <div v-for="n in 8" :key="n" class="prod-card">
@@ -964,6 +1144,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="pc-name" @click="openProductDetail(p)" style="cursor:pointer">{{  p.name  }}</div>
               <div class="pc-seller"><i class="fas fa-store" style="font-size:8px"></i><span class="pc-seller-link" @click.stop="manufFilter=p.seller_name||'TechMedixLink';goTab('browse')" :title="'Browse all from '+( p.seller_name||'TechMedixLink')">{{  p.seller_name||'TechMedixLink'  }}</span><span v-if="p.seller_verified || adminUsers.find(u=>u.id===p.user_id)?.company_name?.startsWith('[VERIFIED]')" class="vbadge"><i class="fas fa-check-circle"></i></span></div>
               <div class="pc-loc"><i class="fas fa-location-dot" style="font-size:8px"></i>{{  p.country||'Tanzania'  }}</div>
+              <div v-if="p.delivery_days_min" style="font-size:9px;color:var(--ok);font-weight:600;display:flex;align-items:center;gap:4px;margin-bottom:4px"><i class="fas fa-truck" style="font-size:8px"></i>Est. {{ p.delivery_days_min }}–{{ p.delivery_days_max }} days</div>
               <div class="pc-stars">
                 <i v-for="s in 5" :key="s" class="pc-star fas fa-star" :class="{on:s<=(p.avg_rating||0)}"></i>
                 <span class="pc-rating-count">({{  p.review_count||0  }})</span>
@@ -991,7 +1172,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <!-- Buyer or seller viewing someone else's product -->
                 <template v-else>
                   <button @click="openProductDetail(p)" class="btn btn-g btn-sm" style="flex:1"><i class="fas fa-eye"></i>Details</button>
-                  <button v-if="canBuy" @click="addToBasket(p);$event.target.closest('button').classList.add('btn-ok');setTimeout(()=>$event.target.closest('button').classList.remove('btn-ok'),800)" class="btn btn-s btn-sm btn-sq" title="Add to basket"><i class="fas fa-basket-shopping" style="font-size:11px"></i></button>
+                  <button v-if="canBuy" @click="addToBasket(p)" class="btn btn-s btn-sm btn-sq" title="Add to basket"><i class="fas fa-basket-shopping" style="font-size:11px"></i></button>
                   <button v-if="canBuy" @click="quickRequest(p)" class="btn btn-p btn-sm" style="flex:1" :disabled="!p.is_active"><i class="fas fa-cart-plus"></i>{{ p.stock_quantity > 0 ? "Request" : "Source" }}</button>
                 </template>
               </div>
@@ -1070,14 +1251,17 @@ document.addEventListener('DOMContentLoaded', () => {
           <div v-if="r.items?.length" class="req-items">
             <div v-for="it in r.items" :key="it.id" class="ri-row"><span class="ri-name">{{  it.product_name  }}</span><span class="ri-qty">×{{  it.quantity  }}</span><span class="ri-price">{{  tzs(it.total_price)  }}</span></div>
           </div>
-          <!-- Actions -->
-          <div style="display:flex;gap:var(--s2);flex-wrap:wrap">
-            <button @click="openDetailModal(r)" class="btn btn-g btn-sm"><i class="fas fa-eye"></i>Details & Tracking</button>
-            <button v-if="(r.balance_due||0)>0" @click="askPayment(r)" class="btn btn-p btn-sm"><i class="fas fa-credit-card"></i>Pay Balance</button>
-            <button v-if="r.status==='delivered'" @click="confirmReceipt(r)" class="btn btn-ok btn-sm"><i class="fas fa-box-open"></i>Confirm Receipt</button>
-            <button v-if="r.status==='completed'" @click="openReviewModal(r)" class="btn btn-s btn-sm"><i class="fas fa-star"></i>Leave Review</button>
-            <button @click="doTrack(r.request_number)" class="btn btn-g btn-sm"><i class="fas fa-location-dot"></i>Track</button>
-            <!-- FIX 6: Message button -->
+          <!-- Actions — primary CTA per status -->
+          <div style="display:flex;gap:var(--s2);flex-wrap:wrap;align-items:center">
+            <!-- PRIMARY action changes per status -->
+            <button v-if="r.status==='quoted'" @click="acceptQuote(r)" class="btn btn-ok btn-sm" style="flex:1;justify-content:center;font-weight:700"><i class="fas fa-check"></i>Accept Quote</button>
+            <button v-else-if="(r.balance_due||0)>0" @click="askPayment(r)" class="btn btn-p btn-sm" style="flex:1;justify-content:center;font-weight:700"><i class="fas fa-credit-card"></i>Pay {{ tzs(r.balance_due) }}</button>
+            <button v-else-if="r.status==='delivered'" @click="confirmReceipt(r)" class="btn btn-ok btn-sm" style="flex:1;justify-content:center;font-weight:700"><i class="fas fa-box-open"></i>Confirm Receipt</button>
+            <button v-else-if="r.status==='completed'&&!r.reviewed" @click="openReviewModal(r)" class="btn btn-s btn-sm" style="flex:1;justify-content:center"><i class="fas fa-star"></i>Leave Review</button>
+            <button v-else @click="openDetailModal(r)" class="btn btn-g btn-sm" style="flex:1;justify-content:center"><i class="fas fa-eye"></i>View Details</button>
+            <!-- SECONDARY actions -->
+            <button @click="openDetailModal(r)" class="btn btn-g btn-sm btn-sq" title="Details"><i class="fas fa-eye" style="font-size:11px"></i></button>
+            <button @click="doTrack(r.request_number)" class="btn btn-g btn-sm btn-sq" title="Track order"><i class="fas fa-location-dot" style="font-size:11px"></i></button>
             <button @click.stop="openMessages(r)" class="btn btn-g btn-sm btn-sq" style="position:relative" title="Messages">
               <i class="fas fa-message" style="font-size:11px"></i>
               <span v-if="unreadMessageCounts[r.id]" class="msg-unread-badge">{{ unreadMessageCounts[r.id] }}</span>
@@ -1919,106 +2103,361 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </transition>
 
-<!-- REQUEST MODAL -->
+<!-- IMAGE LIGHTBOX -->
+<transition name="fade">
+  <div v-if="showLightbox" class="lightbox-bg" @click="showLightbox=false">
+    <button class="lightbox-close" @click="showLightbox=false"><i class="fas fa-times"></i></button>
+    <div class="lightbox-nav" v-if="viewedProduct?.images?.length">
+      <button class="lightbox-arr lightbox-prev" @click.stop="lightboxPrev"><i class="fas fa-chevron-left"></i></button>
+      <button class="lightbox-arr lightbox-next" @click.stop="lightboxNext"><i class="fas fa-chevron-right"></i></button>
+    </div>
+    <img :src="lightboxImg" class="lightbox-img" @click.stop>
+    <div class="lightbox-counter" v-if="viewedProduct?.images?.length">
+      {{ lightboxIndex+1 }} / {{ (viewedProduct.images?.length||0)+1 }}
+    </div>
+  </div>
+</transition>
+
+<!-- REQUEST MODAL — PREMIUM REDESIGN -->
 <transition name="modal">
-  <div v-if="showReqModal" class="modal-bg" @click.self="rF.product_id||rF.custom_name||rF.source_url ? (confirm={title:'Discard request?',msg:'You have unsaved changes. Close anyway?',tone:'wn',icon:'fas fa-exclamation-triangle',ok_lbl:'Discard',ok:()=>{showReqModal=false;Object.assign(rF,{platform_type:'techmedix',product_id:'',quantity:1,urgency:'normal',notes:'',source_type:'catalog',address_id:'',custom_name:'',custom_desc:'',source_url:''})}}) : (showReqModal=false)">
-    <div class="modal modal-lg">
-      <div class="modal-hd"><div><div class="modal-ttl">New Purchase Request</div><div class="modal-sub">Submit a sourcing or purchase request</div></div><button class="modal-x" @click="showReqModal=false"><i class="fas fa-times"></i></button></div>
-      <div class="modal-body">
-        <div class="fr2">
-          <div class="fg"><label class="lbl req">Platform</label>
-            <select v-model="rF.platform_type" class="sel">
-              <option value="techmedix">TechMedixLink — Local Tanzania stock, faster delivery</option>
-              <option value="globaldoor">GlobalDoor — International sourcing, wider selection</option>
-            </select>
-            <div class="hint"><i class="fas fa-info-circle"></i> TechMedixLink for local/urgent orders. GlobalDoor for specialist or imported equipment.</div>
+  <div v-if="showReqModal" class="modal-bg req-modal-bg" @click.self="rF.product_id||rF.custom_name||rF.source_url?(confirm={title:'Discard request?',msg:'You have unsaved changes. Close anyway?',tone:'wn',icon:'fas fa-exclamation-triangle',ok_lbl:'Discard',ok:()=>{showReqModal=false;Object.assign(rF,{platform_type:'techmedix',product_id:'',quantity:1,urgency:'normal',notes:'',source_type:'catalog',address_id:'',custom_name:'',custom_desc:'',source_url:''})}}):(showReqModal=false)">
+    <div class="modal req-modal">
+
+      <!-- Header with progress indicator -->
+      <div class="req-modal-hd">
+        <div style="display:flex;align-items:center;gap:var(--s3);flex:1;min-width:0">
+          <div style="width:36px;height:36px;border-radius:var(--r2);background:var(--philips);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="fas fa-file-medical" style="color:white;font-size:14px"></i>
           </div>
-          <div class="fg"><label class="lbl req">Urgency</label>
-          <select v-model="rF.urgency" class="sel">
-            <option value="low">Low — flexible timeline (14–30 days)</option>
-            <option value="normal">Normal — standard delivery (7–14 days)</option>
-            <option value="high">High — expedited (3–7 days, +15% fee)</option>
-            <option value="critical">Critical / Emergency (24–72h, +30% fee)</option>
-          </select>
-          <div class="hint"><i class="fas fa-info-circle"></i> Urgent orders may have additional sourcing and shipping fees reflected in your quote.</div>
-        </div>
-        </div>
-        <!-- Request type switcher -->
-        <div class="fg">
-          <label class="lbl req">How would you like to source this?</label>
-          <div style="display:flex;gap:var(--s2)">
-            <button type="button" @click="rF.source_type='catalog';rF.custom_name='';rF.custom_desc='';rF.source_url=''" class="btn btn-sm" :class="rF.source_type==='catalog'?'btn-p':'btn-s'" style="flex:1"><i class="fas fa-boxes-stacked"></i>From Our Catalogue</button>
-            <button type="button" @click="rF.source_type='manual';rF.product_id=''" class="btn btn-sm" :class="rF.source_type==='manual'?'btn-p':'btn-s'" style="flex:1"><i class="fas fa-pen"></i>Custom / Unlisted Item</button>
-            <button type="button" @click="rF.source_type='link';rF.product_id=''" class="btn btn-sm" :class="rF.source_type==='link'?'btn-p':'btn-s'" style="flex:1"><i class="fas fa-link"></i>Product Link</button>
+          <div style="min-width:0">
+            <div style="font-family:var(--fd);font-size:18px;color:var(--tx-1);line-height:1.2">New Procurement Request</div>
+            <div style="font-size:11px;color:var(--tx-3);margin-top:1px">You can order anything — catalogue item, custom item, or paste a link</div>
           </div>
         </div>
-        <!-- CATALOG path -->
-        <template v-if="rF.source_type==='catalog'">
-          <div class="fg"><label class="lbl req">Select Product</label>
-            <select v-model="rF.product_id" class="sel">
-              <option value="">— Choose from catalogue —</option>
-              <option v-for="p in products.filter(p=>p.is_active)" :key="p.id" :value="p.id">{{  p.name  }} · ${{  fNum(p.base_price_usd)  }}</option>
-            </select>
-          </div>
-          <div v-if="selectedProduct" class="info-strip ac" style="margin-top:0">
-            <div style="flex:1">
-              <div style="font-size:var(--tsm);font-weight:600;color:var(--tx-1)">{{  selectedProduct.name  }}</div>
-              <div style="font-size:var(--txs);color:var(--a);margin-top:2px">{{  stockLabel(selectedProduct.stock_quantity)  }} · {{  selectedProduct.country||'Tanzania'  }}</div>
-            </div>
-            <div style="text-align:right"><div style="font-family:var(--fd);font-size:20px;color:var(--a)">${{  fNum(selectedProduct.base_price_usd)  }}</div><div style="font-size:10px;color:var(--tx-3)">≈ {{  tzs(Math.round(selectedProduct.base_price_usd*usdToTzs))  }}</div></div>
-          </div>
-        </template>
-        <!-- MANUAL / CUSTOM path -->
-        <template v-if="rF.source_type==='manual'">
-          <div class="info-strip in" style="margin-top:0"><i class="fas fa-lightbulb" style="color:var(--info);flex-shrink:0"></i><div style="font-size:var(--txs);color:var(--info);line-height:1.5">Describe the item you need. Our team will source it and send you a quote within 24 hours.</div></div>
-          <div class="fg"><label class="lbl req">Product / Item Name</label><input type="text" v-model="rF.custom_name" class="inp" maxlength="200" placeholder="e.g. Philips Ultrasound HD11 XE, Surgical gloves size M, ECG Machine"></div>
-          <div class="fg"><label class="lbl req">Detailed Description &amp; Specifications</label><textarea v-model="rF.custom_desc" class="tex" placeholder="Brand, model number, technical specs, colour, size, quantity, any specific requirements…"></textarea></div>
-        </template>
-        <!-- LINK path -->
-        <template v-if="rF.source_type==='link'">
-          <div class="info-strip in" style="margin-top:0"><i class="fas fa-globe" style="color:var(--info);flex-shrink:0"></i><div style="font-size:var(--txs);color:var(--info);line-height:1.5">Paste a link to the product on Amazon, Alibaba, or any supplier website. We will procure and deliver it to you.</div></div>
-          <div class="fg"><label class="lbl req">Product Link (URL)</label><input type="url" v-model="rF.source_url" class="inp" placeholder="https://www.amazon.com/dp/…  or  https://alibaba.com/…"></div>
-          <div class="fg"><label class="lbl">Additional Notes</label><textarea v-model="rF.custom_desc" class="tex" style="min-height:60px" placeholder="Quantity, variant (colour/size), any specific requirements…"></textarea></div>
-        </template>
-        <div class="fg"><label class="lbl req">Quantity</label><input type="number" v-model.number="rF.quantity" min="1" class="inp" style="max-width:160px"></div>
-        <!-- Address picker (item 87) -->
-        <div class="fg">
-          <label class="lbl">Delivery Address</label>
-          <div v-if="!addresses.length" class="info-strip wn" style="margin-bottom:var(--s2)">
-            <i class="fas fa-map-pin" style="color:var(--warn);flex-shrink:0"></i>
-            <div style="font-size:var(--txs);color:var(--warn)">No saved addresses — add one below or enter in the notes field.</div>
-          </div>
-          <div v-for="addr in addresses" :key="addr.id" class="addr-card" :class="{sel:rF.address_id===addr.id}" @click="rF.address_id=addr.id">
-            <div class="addr-ico"><i :class="addr.address_type==='clinic'?'fas fa-hospital':addr.address_type==='work'?'fas fa-building':addr.address_type==='warehouse'?'fas fa-warehouse':'fas fa-home'"></i></div>
-            <div style="flex:1"><div style="font-size:var(--tsm);font-weight:600;color:var(--tx-1);text-transform:capitalize">{{  addr.address_type||'Address'  }}</div><div style="font-size:var(--txs);color:var(--tx-3)">{{  [addr.street, addr.district, addr.region].filter(Boolean).join(', ')  }}</div></div>
-            <i v-if="rF.address_id===addr.id" class="fas fa-check-circle" style="color:var(--ok);margin-left:auto;flex-shrink:0"></i>
-          </div>
-          <button @click="addingAddress=!addingAddress" class="btn btn-g btn-xs" style="margin-top:var(--s2)">
-            <i class="fas fa-plus"></i>{{ addingAddress ? 'Cancel' : '+ Add new address' }}
-          </button>
-          <div v-if="addingAddress" class="add-address-inline" style="margin-top:var(--s2)">
-            <div class="fr2" style="margin-bottom:var(--s2)">
-              <div class="fg"><label class="lbl req">Region</label><input type="text" v-model="addrF.region" class="inp" placeholder="e.g. Dar es Salaam"></div>
-              <div class="fg"><label class="lbl">District</label><input type="text" v-model="addrF.district" class="inp" placeholder="e.g. Ilala"></div>
-            </div>
-            <div class="fg" style="margin-bottom:var(--s2)"><label class="lbl">Street / Road</label><input type="text" v-model="addrF.street" class="inp" placeholder="e.g. Samora Avenue"></div>
-            <button @click="saveAddress();addingAddress=false" class="btn btn-ok btn-sm" :disabled="!addrF.region"><i class="fas fa-check"></i>Save & Select</button>
-          </div>
+        <button class="modal-x" @click="showReqModal=false" aria-label="Close"><i class="fas fa-times"></i></button>
+      </div>
+
+      <!-- How are you ordering? — 3 big cards -->
+      <div class="req-type-strip">
+        <div class="req-type-card" :class="{active:rF.source_type==='catalog'}"
+          @click="rF.source_type='catalog';rF.custom_name='';rF.custom_desc='';rF.source_url=''">
+          <div class="req-type-icon" style="background:rgba(0,102,161,0.12);color:var(--philips)"><i class="fas fa-boxes-stacked"></i></div>
+          <div class="req-type-label">From Catalogue</div>
+          <div class="req-type-desc">Pick from our listed products</div>
+          <div v-if="rF.source_type==='catalog'" class="req-type-check"><i class="fas fa-check"></i></div>
         </div>
-        <div class="fg"><label class="lbl">Delivery Notes / Specifications</label><textarea v-model="rF.notes" class="tex" placeholder="Delivery address, special requirements, product specifications…"></textarea></div>
-        <!-- Cost estimate -->
-        <div v-if="selectedProduct" class="cost-box">
-          <div class="cost-ttl"><i class="fas fa-calculator"></i>Cost Estimate</div>
-          <div class="cost-row"><span class="c-l">Item Cost</span><span class="c-v">{{  tzs(reqCostEstimate.items)  }}</span></div>
-          <div class="cost-row"><span class="c-l">Shipping (est.)</span><span class="c-v">{{  tzs(reqCostEstimate.shipping)  }}</span></div>
-          <div class="cost-row" v-if="rF.platform_type==='globaldoor'"><span class="c-l">Import Duty (est.)</span><span class="c-v">{{  tzs(reqCostEstimate.duty)  }}</span></div>
-          <div class="cost-row"><span class="c-l">Service Fee (10%)</span><span class="c-v">{{  tzs(reqCostEstimate.fee)  }}</span></div>
-          <div class="cost-row total"><span class="c-l">Total Estimate</span><span class="c-v">{{  tzs(reqCostEstimate.total)  }}</span></div>
+        <div class="req-type-card" :class="{active:rF.source_type==='manual'}"
+          @click="rF.source_type='manual';rF.product_id=''">
+          <div class="req-type-icon" style="background:rgba(0,168,176,0.12);color:#009aa0"><i class="fas fa-pen-to-square"></i></div>
+          <div class="req-type-label">Custom / Unlisted</div>
+          <div class="req-type-desc">Describe any item not in catalogue</div>
+          <div v-if="rF.source_type==='manual'" class="req-type-check"><i class="fas fa-check"></i></div>
+        </div>
+        <div class="req-type-card" :class="{active:rF.source_type==='link'}"
+          @click="rF.source_type='link';rF.product_id=''">
+          <div class="req-type-icon" style="background:rgba(80,60,180,0.10);color:#6050c0"><i class="fas fa-link"></i></div>
+          <div class="req-type-label">Paste a Product Link</div>
+          <div class="req-type-desc">Amazon, Alibaba, any website</div>
+          <div v-if="rF.source_type==='link'" class="req-type-check"><i class="fas fa-check"></i></div>
         </div>
       </div>
-      <div class="modal-ft">
-        <button @click="saveReq" class="btn btn-p" :disabled="(rF.source_type==='catalog'&&!rF.product_id)||(rF.source_type==='manual'&&!rF.custom_name)||(rF.source_type==='link'&&!rF.source_url)||!rF.quantity"><i class="fas fa-paper-plane"></i>Submit Request</button>
-        <button @click="showReqModal=false" class="btn btn-g">Cancel</button>
+
+      <div class="modal-body req-modal-body">
+        <div class="req-modal-grid">
+
+          <!-- LEFT COLUMN: Main form -->
+          <div class="req-form-col">
+
+            <!-- CATALOGUE PATH — visual product picker -->
+            <template v-if="rF.source_type==='catalog'">
+              <!-- Search within catalogue -->
+              <div class="fg" style="margin-bottom:var(--s2)">
+                <div style="position:relative">
+                  <i class="fas fa-search" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--tx-3);font-size:11px;pointer-events:none"></i>
+                  <input type="text" v-model="reqCatalogSearch" class="inp" style="padding-left:32px;font-size:13px" placeholder="Search products…">
+                </div>
+              </div>
+              <!-- Product grid -->
+              <div class="req-catalog-grid">
+                <div v-for="p in products.filter(p=>p.is_active&&(!reqCatalogSearch||p.name.toLowerCase().includes(reqCatalogSearch.toLowerCase())||p.manufacturer?.toLowerCase().includes(reqCatalogSearch.toLowerCase())))"
+                  :key="p.id"
+                  class="req-catalog-card"
+                  :class="{selected:rF.product_id===p.id}"
+                  @click="rF.product_id=p.id">
+                  <div class="req-catalog-img">
+                    <img v-if="p.image_url" :src="p.image_url" loading="lazy">
+                    <i v-else class="fas fa-box-open" style="color:var(--tx-4);font-size:18px"></i>
+                  </div>
+                  <div class="req-catalog-info">
+                    <div class="req-catalog-name">{{ p.name }}</div>
+                    <div class="req-catalog-mfr">{{ p.manufacturer||'—' }}</div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+                      <span class="badge" :class="p.tmda_certified?'b-ok':'b-mu'" style="font-size:8px">{{ p.tmda_certified?'TMDA':'—' }}</span>
+                      <span style="font-family:var(--fm);font-size:13px;font-weight:700;color:var(--philips)">${{ fNum(p.base_price_usd) }}</span>
+                    </div>
+                  </div>
+                  <div v-if="rF.product_id===p.id" class="req-catalog-check"><i class="fas fa-check"></i></div>
+                </div>
+                <div v-if="!products.filter(p=>p.is_active).length" style="grid-column:1/-1;text-align:center;padding:var(--s4);color:var(--tx-3)">
+                  No products in catalogue yet
+                </div>
+              </div>
+              <!-- Selected product summary -->
+              <div v-if="selectedProduct" class="req-product-preview">
+                <div class="req-product-preview-img">
+                  <img v-if="selectedProduct.image_url" :src="selectedProduct.image_url" loading="lazy">
+                  <i v-else class="fas fa-box-open" style="font-size:20px;color:var(--tx-3)"></i>
+                </div>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:var(--tsm);font-weight:700;color:var(--tx-1)">{{ selectedProduct.name }}</div>
+                  <div style="font-size:var(--txs);color:var(--tx-3);margin-top:1px">{{ selectedProduct.manufacturer }} · {{ selectedProduct.country||'Tanzania' }}</div>
+                  <div style="display:flex;gap:var(--s1);margin-top:4px;flex-wrap:wrap">
+                    <span class="badge" :class="selectedProduct.tmda_certified?'b-ok':'b-mu'" style="font-size:9px">{{ selectedProduct.tmda_certified?'TMDA Certified':'Not TMDA' }}</span>
+                    <span class="badge b-ac" style="font-size:9px">{{ stockLabel(selectedProduct.stock_quantity) }}</span>
+                    <span v-if="selectedProduct.warranty_months" class="badge b-mu" style="font-size:9px">{{ selectedProduct.warranty_months }}m warranty</span>
+                  </div>
+                </div>
+                <div style="text-align:right;flex-shrink:0">
+                  <div style="font-family:var(--fm);font-size:22px;font-weight:800;color:var(--philips)">${{ fNum(selectedProduct.base_price_usd) }}</div>
+                  <div style="font-size:10px;color:var(--tx-3)">≈ {{ tzs(Math.round(selectedProduct.base_price_usd*usdToTzs)) }}</div>
+                </div>
+              </div>
+              <div v-else class="req-hint-strip" style="margin-top:0">
+                <i class="fas fa-hand-pointer" style="color:var(--philips)"></i>
+                <div>Select a product above to see price estimate and submit your request</div>
+              </div>
+            </template>
+
+            <!-- CUSTOM PATH -->
+            <template v-if="rF.source_type==='manual'">
+              <div class="req-hint-strip">
+                <i class="fas fa-lightbulb"></i>
+                <div>
+                  <div style="font-weight:600;margin-bottom:2px">Describe any item — we source it for you</div>
+                  <div style="opacity:0.85">Include brand name, model number, technical specs, size, or any relevant details. The more detail, the faster we can quote.</div>
+                </div>
+              </div>
+              <div class="fg">
+                <label class="lbl req">Item name</label>
+                <input type="text" v-model="rF.custom_name" class="inp" maxlength="200"
+                  placeholder="e.g. Philips HD11 XE Ultrasound, Surgical Gloves Size M (box of 100), Autoclave 23L">
+              </div>
+              <div class="fg">
+                <label class="lbl req">Specifications &amp; details</label>
+                <textarea v-model="rF.custom_desc" class="tex req-tex"
+                  placeholder="Include any of:&#10;• Brand / manufacturer preference&#10;• Model number (if known)&#10;• Technical specifications (voltage, capacity, dimensions)&#10;• Certifications required (CE, ISO, TMDA)&#10;• Quantity and unit type&#10;• Colour, size, material&#10;• Alternative brands acceptable?"></textarea>
+              </div>
+            </template>
+
+            <!-- LINK PATH -->
+            <template v-if="rF.source_type==='link'">
+              <div class="req-hint-strip req-hint-purple">
+                <i class="fas fa-globe"></i>
+                <div>
+                  <div style="font-weight:600;margin-bottom:2px">Found it online? Just paste the link</div>
+                  <div style="opacity:0.85">We procure from Amazon, Alibaba, eBay, medical suppliers, manufacturer websites — anywhere worldwide. You pay in TZS, we handle customs and delivery.</div>
+                </div>
+              </div>
+              <div class="fg">
+                <label class="lbl req">Product URL</label>
+                <div style="position:relative">
+                  <i class="fas fa-link" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--tx-3);font-size:12px;pointer-events:none"></i>
+                  <input type="url" v-model="rF.source_url" class="inp" style="padding-left:34px"
+                    placeholder="https://www.amazon.com/dp/… or https://alibaba.com/product/…">
+                </div>
+                <div class="hint" v-if="rF.source_url">
+                  <i class="fas fa-check-circle" style="color:var(--ok)"></i>
+                  Link saved — our team will review and quote within 24 hours
+                </div>
+              </div>
+              <!-- Popular source shortcuts -->
+              <div style="display:flex;gap:var(--s2);flex-wrap:wrap;margin-bottom:var(--s3)">
+                <span style="font-size:10px;color:var(--tx-4);align-self:center">Popular sources:</span>
+                <a href="https://www.amazon.com/s?k=medical+equipment" target="_blank" class="req-source-chip"><i class="fab fa-amazon"></i>Amazon</a>
+                <a href="https://www.alibaba.com/trade/search?SearchText=medical+equipment" target="_blank" class="req-source-chip"><i class="fas fa-globe"></i>Alibaba</a>
+                <a href="https://www.medicalexpo.com/" target="_blank" class="req-source-chip"><i class="fas fa-stethoscope"></i>MedicalExpo</a>
+                <a href="https://www.directindustry.com/medical-lab-equipment/" target="_blank" class="req-source-chip"><i class="fas fa-industry"></i>DirectIndustry</a>
+              </div>
+              <div class="fg">
+                <label class="lbl">Additional notes <span style="color:var(--tx-4);font-weight:400">(optional)</span></label>
+                <textarea v-model="rF.custom_desc" class="tex" style="min-height:70px"
+                  placeholder="Quantity, specific variant (colour/size/voltage), acceptable alternatives, deadline…"></textarea>
+              </div>
+            </template>
+
+            <!-- QUANTITY + URGENCY row -->
+            <div class="fr2">
+              <div class="fg">
+                <label class="lbl req">Quantity</label>
+                <div style="display:flex;align-items:center;gap:var(--s2)">
+                  <button type="button" @click="rF.quantity=Math.max(1,rF.quantity-1)" class="btn btn-g btn-sq" style="flex-shrink:0;width:36px;height:36px;font-size:16px;padding:0;justify-content:center">−</button>
+                  <input type="number" v-model.number="rF.quantity" min="1" class="inp" style="text-align:center;font-family:var(--fm);font-weight:700;font-size:18px">
+                  <button type="button" @click="rF.quantity++" class="btn btn-g btn-sq" style="flex-shrink:0;width:36px;height:36px;font-size:16px;padding:0;justify-content:center">+</button>
+                </div>
+              </div>
+              <div class="fg">
+                <label class="lbl req">How urgent is this?</label>
+                <div style="display:flex;flex-direction:column;gap:4px">
+                  <label v-for="u in [{v:'low',l:'Flexible',d:'14–30 days',c:'b-mu'},{v:'normal',l:'Standard',d:'7–14 days',c:'b-in'},{v:'high',l:'Urgent',d:'3–7 days +15%',c:'b-wn'},{v:'critical',l:'Emergency',d:'24–72h +30%',c:'b-er'}]" :key="u.v"
+                    class="req-urgency-opt" :class="{active:rF.urgency===u.v}" @click="rF.urgency=u.v" style="cursor:pointer">
+                    <div style="display:flex;align-items:center;gap:var(--s2)">
+                      <input type="radio" :checked="rF.urgency===u.v" style="width:14px;height:14px;accent-color:var(--philips)">
+                      <span style="font-weight:600;font-size:var(--tsm)">{{ u.l }}</span>
+                      <span class="badge" :class="u.c" style="font-size:8px">{{ u.d }}</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- NOTES -->
+            <div class="fg">
+              <label class="lbl">Additional notes <span style="color:var(--tx-4);font-weight:400">(optional)</span></label>
+              <textarea v-model="rF.notes" class="tex" style="min-height:70px" maxlength="1000"
+                placeholder="Any special requirements, installation needs, preferred brands, deadline, budget constraints…"></textarea>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN: Summary + platform + address -->
+          <div class="req-summary-col">
+
+            <!-- Platform selector -->
+            <div class="req-summary-section">
+              <div class="req-summary-ttl"><i class="fas fa-route"></i> Sourcing route</div>
+              <div style="display:flex;flex-direction:column;gap:var(--s2)">
+                <label class="req-platform-opt" :class="{active:rF.platform_type==='techmedix'}" @click="rF.platform_type='techmedix'" style="cursor:pointer">
+                  <div style="display:flex;align-items:center;gap:var(--s2)">
+                    <input type="radio" :checked="rF.platform_type==='techmedix'" style="accent-color:var(--philips)">
+                    <div>
+                      <div style="font-weight:700;font-size:var(--tsm);color:var(--tm)"><i class="fas fa-heart-pulse" style="font-size:10px"></i> TechMedixLink</div>
+                      <div style="font-size:10px;color:var(--tx-3)">Local Tanzania stock · Faster delivery</div>
+                    </div>
+                  </div>
+                </label>
+                <label class="req-platform-opt" :class="{active:rF.platform_type==='globaldoor'}" @click="rF.platform_type='globaldoor'" style="cursor:pointer">
+                  <div style="display:flex;align-items:center;gap:var(--s2)">
+                    <input type="radio" :checked="rF.platform_type==='globaldoor'" style="accent-color:var(--gd)">
+                    <div>
+                      <div style="font-weight:700;font-size:var(--tsm);color:var(--gd)"><i class="fas fa-globe" style="font-size:10px"></i> GlobalDoor</div>
+                      <div style="font-size:10px;color:var(--tx-3)">International sourcing · Wider selection</div>
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- Cost estimate (catalogue only) -->
+            <div v-if="selectedProduct && rF.source_type==='catalog'" class="req-summary-section">
+              <div class="req-summary-ttl"><i class="fas fa-calculator"></i> Cost estimate</div>
+              <div class="req-cost-rows">
+                <div class="req-cost-row"><span>Item × {{ rF.quantity }}</span><span>{{ tzs(reqCostEstimate.items) }}</span></div>
+                <div class="req-cost-row"><span>Est. shipping</span><span>{{ tzs(reqCostEstimate.shipping) }}</span></div>
+                <div class="req-cost-row" v-if="rF.platform_type==='globaldoor'"><span>Est. import duty</span><span>{{ tzs(reqCostEstimate.duty) }}</span></div>
+                <div class="req-cost-row"><span>Service fee (10%)</span><span>{{ tzs(reqCostEstimate.fee) }}</span></div>
+                <div class="req-cost-total"><span>Estimated total</span><span>{{ tzs(reqCostEstimate.total) }}</span></div>
+              </div>
+              <div style="font-size:9px;color:var(--tx-4);margin-top:var(--s2);line-height:1.5;text-align:center">
+                Estimates only. Exact quote sent within 24h.
+              </div>
+            </div>
+
+            <!-- Non-catalogue quote promise -->
+            <div v-if="rF.source_type!=='catalog'" class="req-summary-section">
+              <div class="req-summary-ttl"><i class="fas fa-clock"></i> What happens next</div>
+              <div style="display:flex;flex-direction:column;gap:var(--s2)">
+                <div class="req-next-step"><div class="req-next-num">1</div><span>We review your request <strong>within 2 hours</strong></span></div>
+                <div class="req-next-step"><div class="req-next-num">2</div><span>You receive a full cost quote by WhatsApp &amp; email</span></div>
+                <div class="req-next-step"><div class="req-next-num">3</div><span>Approve &amp; pay a deposit to begin sourcing</span></div>
+                <div class="req-next-step"><div class="req-next-num">4</div><span>Track delivery in real-time until it arrives</span></div>
+              </div>
+            </div>
+
+            <!-- Delivery address -->
+            <div class="req-summary-section">
+              <div class="req-summary-ttl"><i class="fas fa-map-pin"></i> Delivery address</div>
+              <div v-if="!addresses.length" style="font-size:var(--txs);color:var(--tx-3);text-align:center;padding:var(--s2) 0">
+                <i class="fas fa-map-marked-alt" style="font-size:18px;color:var(--tx-4);display:block;margin-bottom:6px"></i>
+                Add a delivery address below or describe it in notes
+              </div>
+              <div v-for="addr in addresses" :key="addr.id"
+                class="req-addr-opt" :class="{active:rF.address_id===addr.id}" @click="rF.address_id=addr.id">
+                <i :class="addr.address_type==='clinic'?'fas fa-hospital':addr.address_type==='work'?'fas fa-building':'fas fa-home'"
+                  style="color:var(--philips);flex-shrink:0;font-size:12px;margin-top:1px"></i>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:11px;font-weight:600;color:var(--tx-1);text-transform:capitalize">{{ addr.address_type }}</div>
+                  <div style="font-size:10px;color:var(--tx-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ [addr.region,addr.district,addr.street].filter(Boolean).join(', ') }}</div>
+                </div>
+                <i v-if="rF.address_id===addr.id" class="fas fa-check-circle" style="color:var(--ok);flex-shrink:0"></i>
+              </div>
+              <button @click="addingAddress=!addingAddress" class="btn btn-g btn-xs" style="width:100%;margin-top:var(--s2);justify-content:center">
+                <i class="fas fa-plus"></i>{{ addingAddress?'Cancel':'+ Add address' }}
+              </button>
+              <div v-if="addingAddress" class="add-address-inline">
+                <div class="fr2" style="margin-bottom:var(--s2)">
+                  <div class="fg"><label class="lbl req" style="font-size:10px">Region</label><input type="text" v-model="addrF.region" class="inp" style="font-size:12px" placeholder="e.g. Dar es Salaam"></div>
+                  <div class="fg"><label class="lbl" style="font-size:10px">District</label><input type="text" v-model="addrF.district" class="inp" style="font-size:12px" placeholder="e.g. Ilala"></div>
+                </div>
+                <div class="fg" style="margin-bottom:var(--s2)"><label class="lbl" style="font-size:10px">Street / Landmark</label><input type="text" v-model="addrF.street" class="inp" style="font-size:12px" placeholder="e.g. Near Muhimbili Hospital"></div>
+                <button @click="saveAddress();addingAddress=false" class="btn btn-ok btn-xs" :disabled="!addrF.region" style="width:100%;justify-content:center"><i class="fas fa-check"></i>Save address</button>
+              </div>
+            </div>
+
+            <!-- Trust signals -->
+            <div class="req-trust-strip">
+              <div class="req-trust-item"><i class="fas fa-shield-halved"></i>Secure procurement</div>
+              <div class="req-trust-item"><i class="fas fa-rotate"></i>Free sourcing consultation</div>
+              <div class="req-trust-item"><i class="fas fa-headset"></i>WhatsApp support</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="req-modal-ft">
+        <div style="font-size:var(--txs);color:var(--tx-3)">
+          <i class="fas fa-lock" style="color:var(--ok);font-size:10px"></i>
+          Your request is private and secure
+        </div>
+        <div style="display:flex;gap:var(--s2)">
+          <button @click="showReqModal=false" class="btn btn-g">Cancel</button>
+          <button @click="saveReq" class="btn btn-p req-submit-btn"
+            :disabled="(rF.source_type==='catalog'&&!rF.product_id)||(rF.source_type==='manual'&&!rF.custom_name)||(rF.source_type==='link'&&!rF.source_url)||!rF.quantity">
+            <i class="fas fa-paper-plane"></i>
+            Submit Request
+            <span v-if="rF.source_type==='catalog'&&selectedProduct" style="opacity:0.8;font-size:11px;font-weight:400;margin-left:4px">· {{ tzs(reqCostEstimate.total) }} est.</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</transition>
+
+<!-- REQUEST SUCCESS MODAL -->
+<transition name="modal">
+  <div v-if="showReqSuccess" class="modal-bg" @click.self="showReqSuccess=false">
+    <div class="modal" style="max-width:440px;text-align:center">
+      <div class="modal-body" style="padding:var(--s6) var(--s5)">
+        <!-- Success animation -->
+        <div class="req-success-icon">
+          <i class="fas fa-check" style="font-size:32px;color:white"></i>
+        </div>
+        <div style="font-family:var(--fd);font-size:24px;color:var(--tx-1);margin-bottom:var(--s2)">Request submitted!</div>
+        <div style="font-family:var(--fm);font-size:15px;font-weight:700;color:var(--philips);margin-bottom:var(--s3)">{{ lastReqNumber }}</div>
+        <div style="font-size:var(--tsm);color:var(--tx-2);margin-bottom:var(--s5);line-height:1.7">
+          Our team will review your request and send you a full quote within <strong>24 hours</strong> via WhatsApp and email.
+        </div>
+        <!-- Steps -->
+        <div style="display:flex;flex-direction:column;gap:var(--s2);margin-bottom:var(--s5);text-align:left">
+          <div class="req-next-step"><div class="req-next-num" style="background:var(--ok)">✓</div><span style="color:var(--tx-2);font-size:var(--tsm)">Request received and logged</span></div>
+          <div class="req-next-step"><div class="req-next-num">2</div><span style="color:var(--tx-2);font-size:var(--tsm)">Quote sent within 24 hours</span></div>
+          <div class="req-next-step"><div class="req-next-num">3</div><span style="color:var(--tx-2);font-size:var(--tsm)">Pay deposit to start sourcing</span></div>
+          <div class="req-next-step"><div class="req-next-num">4</div><span style="color:var(--tx-2);font-size:var(--tsm)">Track delivery in real-time</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:var(--s2)">
+          <button @click="showReqSuccess=false;goTab('my-requests')" class="btn btn-p" style="width:100%;justify-content:center"><i class="fas fa-clipboard-list"></i>View My Requests</button>
+          <a :href="'https://wa.me/34659447627?text=Hi%2C%20I%20just%20submitted%20request%20'+lastReqNumber" target="_blank" class="btn btn-g" style="width:100%;justify-content:center;text-decoration:none"><i class="fab fa-whatsapp" style="color:#25d366"></i>Message us on WhatsApp</a>
+          <button @click="showReqSuccess=false" class="btn btn-g" style="width:100%;justify-content:center">Close</button>
+        </div>
       </div>
     </div>
   </div>
@@ -2156,7 +2595,18 @@ document.addEventListener('DOMContentLoaded', () => {
             <div v-else><i class="fas fa-image" style="font-size:28px;color:var(--tx-3);margin-bottom:8px;display:block"></i><div style="font-size:var(--tsm);color:var(--tx-3)">Click to upload product image</div><div style="font-size:var(--txs);color:var(--tx-4);margin-top:3px">JPG, PNG, WebP · Max 5MB · Click or drag to upload</div></div>
           </div>
           <div v-if="pF.uploading" style="display:flex;align-items:center;gap:8px;margin-top:var(--s2);font-size:var(--txs);color:var(--info)"><div class="spinner" style="width:14px;height:14px;margin:0;border-width:1.5px"></div>Uploading image…</div>
-          <div v-if="pF.imageSize&&!pF.uploading" style="font-size:var(--txs);color:var(--ok);margin-top:var(--s1)"><i class="fas fa-check-circle"></i> Image ready · {{  pF.imageSize  }} · JPG/PNG/WebP accepted · Max 5MB</div>
+          <div v-if="pF.imageSize&&!pF.uploading" style="font-size:var(--txs);color:var(--ok);margin-top:var(--s1)"><i class="fas fa-check-circle"></i> Image ready · {{  pF.imageSize  }}</div>
+          <details class="photo-tips" style="margin-top:var(--s2)">
+            <summary style="font-size:var(--txs);color:var(--tx-3);cursor:pointer;user-select:none"><i class="fas fa-lightbulb" style="color:#f0a500;font-size:10px"></i> Photo tips for better sales</summary>
+            <div style="font-size:var(--txs);color:var(--tx-3);line-height:1.7;padding:var(--s2) 0 0 var(--s3)">
+              <div>✓ Use a plain white or light grey background</div>
+              <div>✓ Show the front, back, and all connector ports</div>
+              <div>✓ Include any accessories or cables in the box</div>
+              <div>✓ Add a ruler or hand for scale reference</div>
+              <div>✓ Take in good natural light — avoid flash glare</div>
+              <div>✗ Avoid stock photos — buyers want the real item</div>
+            </div>
+          </details>
         </div>
         <!-- FIX 7: Additional images -->
         <div class="fg">
@@ -2237,100 +2687,230 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </transition>
 
-<!-- PAYMENT MODAL -->
+<!-- PAYMENT MODAL — ALL METHODS -->
 <transition name="modal">
   <div v-if="paymentReq" class="modal-bg" @click.self="paymentReq=null">
-    <div class="modal">
+    <div class="modal modal-lg">
       <div class="modal-hd">
         <div>
-          <div class="modal-ttl">{{  isAdmin ? 'Record Payment' : 'Pay Balance'  }}</div>
-          <div class="modal-sub">{{  paymentReq.request_number  }}</div>
+          <div class="modal-ttl">{{ isAdmin ? 'Record Payment' : 'Pay Balance' }}</div>
+          <div class="modal-sub">{{ paymentReq.request_number }}</div>
         </div>
         <button class="modal-x" @click="paymentReq=null"><i class="fas fa-times"></i></button>
       </div>
       <div class="modal-body">
 
-        <!-- Buyer: verification notice -->
-        <div v-if="!isAdmin" class="info-strip wn" style="margin-bottom:var(--s4)">
-          <i class="fas fa-shield-halved" style="color:var(--warn);flex-shrink:0"></i>
-          <div style="font-size:var(--txs);color:var(--warn);line-height:1.5">
-            <strong>Secure payment.</strong> Enter your M-Pesa reference after completing payment on your phone. Our team verifies within 24 hours.
+        <!-- Order summary -->
+        <div class="pmt-summary" style="margin-bottom:var(--s4)">
+          <div class="pmt-summary-row"><span>Order total</span><span class="mono">{{ tzs(paymentReq.total_cost||0) }}</span></div>
+          <div class="pmt-summary-row"><span>Already paid</span><span class="mono" style="color:var(--ok)">{{ tzs(paymentReq.deposit_paid||0) }}</span></div>
+          <div class="pmt-summary-row pmt-summary-due"><span>Balance due</span><span class="mono">{{ tzs(paymentReq.balance_due||0) }}</span></div>
+        </div>
+
+        <!-- ── PAYMENT METHOD CARDS ── -->
+        <div class="fg" style="margin-bottom:var(--s3)">
+          <label class="lbl req" style="margin-bottom:var(--s2)">Choose payment method</label>
+          <div class="pmt-methods-grid">
+
+            <!-- M-Pesa -->
+            <div class="pmt-method-card" :class="{active:pmtF.method==='mpesa'}" @click="pmtF.method='mpesa'">
+              <div class="pmt-method-icon pmt-mpesa-icon">
+                <i class="fas fa-mobile-screen-button"></i>
+              </div>
+              <div class="pmt-method-name">M-Pesa</div>
+              <div class="pmt-method-desc">Lipa Na M-Pesa</div>
+              <div v-if="pmtF.method==='mpesa'" class="pmt-method-check"><i class="fas fa-check"></i></div>
+            </div>
+
+            <!-- Mereu Pay — Maasai headshake -->
+            <div class="pmt-method-card pmt-mereu" :class="{active:pmtF.method==='mereu_pay'}" @click="pmtF.method='mereu_pay'">
+              <div class="pmt-method-icon pmt-mereu-icon">
+<!-- Maasai headshake — bowed head greeting with motion arcs -->
+                <svg viewBox="0 0 44 44" width="30" height="30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Motion arcs showing side-to-side headshake -->
+                  <path d="M6 14 Q10 8 8 2" stroke="currentColor" stroke-width="1.8" fill="none" opacity="0.35" stroke-linecap="round"/>
+                  <path d="M38 14 Q34 8 36 2" stroke="currentColor" stroke-width="1.8" fill="none" opacity="0.35" stroke-linecap="round"/>
+                  <!-- Head tilted slightly (headshake/bow) -->
+                  <circle cx="22" cy="12" r="7" fill="currentColor" opacity="0.95"/>
+                  <!-- Maasai beaded headband -->
+                  <path d="M15.5 9 Q22 6.5 28.5 9" stroke="white" stroke-width="1.5" fill="none" opacity="0.7" stroke-linecap="round"/>
+                  <!-- Neck -->
+                  <rect x="19" y="18" width="6" height="4" rx="2" fill="currentColor" opacity="0.85"/>
+                  <!-- Shoulders with Maasai shuka wrap -->
+                  <path d="M6 44 C6 32 13 24 22 24 C31 24 38 32 38 44" fill="currentColor" opacity="0.75"/>
+                  <!-- Shuka collar line (distinctive red/blue wrap) -->
+                  <path d="M9 28 Q22 24.5 35 28" stroke="white" stroke-width="2" fill="none" opacity="0.55" stroke-linecap="round"/>
+                  <!-- Second shuka line -->
+                  <path d="M8 32 Q22 28.5 36 32" stroke="white" stroke-width="1.2" fill="none" opacity="0.35" stroke-linecap="round"/>
+                  <!-- Greeting arc dots (motion indicator) -->
+                  <circle cx="8" cy="15" r="1.5" fill="currentColor" opacity="0.4"/>
+                  <circle cx="5" cy="11" r="1" fill="currentColor" opacity="0.25"/>
+                  <circle cx="36" cy="15" r="1.5" fill="currentColor" opacity="0.4"/>
+                  <circle cx="39" cy="11" r="1" fill="currentColor" opacity="0.25"/>
+                </svg>
+              </div>
+              <div class="pmt-method-name">Mereu Pay</div>
+              <div class="pmt-method-desc">Instant · Zero fees</div>
+              <div class="pmt-mereu-badge">NEW</div>
+              <div v-if="pmtF.method==='mereu_pay'" class="pmt-method-check"><i class="fas fa-check"></i></div>
+            </div>
+
+            <!-- Tigo Pesa -->
+            <div class="pmt-method-card" :class="{active:pmtF.method==='tigo_pesa'}" @click="pmtF.method='tigo_pesa'">
+              <div class="pmt-method-icon pmt-tigo-icon">
+                <i class="fas fa-mobile-alt"></i>
+              </div>
+              <div class="pmt-method-name">Tigo Pesa</div>
+              <div class="pmt-method-desc">Mobile money</div>
+              <div v-if="pmtF.method==='tigo_pesa'" class="pmt-method-check"><i class="fas fa-check"></i></div>
+            </div>
+
+            <!-- Airtel Money -->
+            <div class="pmt-method-card" :class="{active:pmtF.method==='airtel_money'}" @click="pmtF.method='airtel_money'">
+              <div class="pmt-method-icon pmt-airtel-icon">
+                <i class="fas fa-sim-card"></i>
+              </div>
+              <div class="pmt-method-name">Airtel Money</div>
+              <div class="pmt-method-desc">Mobile money</div>
+              <div v-if="pmtF.method==='airtel_money'" class="pmt-method-check"><i class="fas fa-check"></i></div>
+            </div>
+
+            <!-- Bank Transfer -->
+            <div class="pmt-method-card" :class="{active:pmtF.method==='bank_transfer'}" @click="pmtF.method='bank_transfer'">
+              <div class="pmt-method-icon pmt-bank-icon">
+                <i class="fas fa-building-columns"></i>
+              </div>
+              <div class="pmt-method-name">Bank Transfer</div>
+              <div class="pmt-method-desc">CRDB · NMB · NBC</div>
+              <div v-if="pmtF.method==='bank_transfer'" class="pmt-method-check"><i class="fas fa-check"></i></div>
+            </div>
+
+            <!-- Cash -->
+            <div class="pmt-method-card" :class="{active:pmtF.method==='cash'}" @click="pmtF.method='cash'">
+              <div class="pmt-method-icon pmt-cash-icon">
+                <i class="fas fa-money-bill-wave"></i>
+              </div>
+              <div class="pmt-method-name">Cash</div>
+              <div class="pmt-method-desc">In-person payment</div>
+              <div v-if="pmtF.method==='cash'" class="pmt-method-check"><i class="fas fa-check"></i></div>
+            </div>
+
           </div>
         </div>
 
-        <!-- Payment summary card -->
-        <div class="pmt-summary">
-          <div class="pmt-summary-row">
-            <span>Order total</span>
-            <span class="mono">{{  tzs(paymentReq.total_cost||0)  }}</span>
-          </div>
-          <div class="pmt-summary-row">
-            <span>Already paid</span>
-            <span class="mono" style="color:var(--ok)">{{  tzs(paymentReq.deposit_paid||0)  }}</span>
-          </div>
-          <div class="pmt-summary-row pmt-summary-due">
-            <span>Balance due</span>
-            <span class="mono">{{  tzs(paymentReq.balance_due||0)  }}</span>
+        <!-- ── CONTEXTUAL INSTRUCTIONS per method ── -->
+
+        <!-- M-Pesa instructions -->
+        <div v-if="pmtF.method==='mpesa' && !isAdmin" class="pmt-instructions pmt-inst-green">
+          <div class="pmt-inst-hd"><i class="fas fa-circle-info"></i> How to pay via M-Pesa</div>
+          <div class="pmt-inst-body">
+            <div class="pmt-inst-row"><span class="pmt-inst-num">1</span><span>Go to M-Pesa → <strong>Lipa Na M-Pesa → Pay Bill</strong></span></div>
+            <div class="pmt-inst-row"><span class="pmt-inst-num">2</span><span>Business number: <strong style="font-family:var(--fm);font-size:14px">400200</strong></span></div>
+            <div class="pmt-inst-row"><span class="pmt-inst-num">3</span><span>Account number: <strong style="font-family:var(--fm);color:var(--philips)">{{ paymentReq?.request_number }}</strong></span></div>
+            <div class="pmt-inst-row"><span class="pmt-inst-num">4</span><span>Amount: <strong style="font-family:var(--fm)">{{ tzs(paymentReq?.balance_due||0) }}</strong></span></div>
+            <div class="pmt-inst-row"><span class="pmt-inst-num">5</span><span>Enter the <strong>confirmation code</strong> from your SMS below</span></div>
           </div>
         </div>
 
-        <!-- Amount -->
+        <!-- Mereu Pay instructions -->
+        <div v-if="pmtF.method==='mereu_pay'" class="pmt-instructions pmt-inst-mereu">
+          <div class="pmt-inst-hd pmt-mereu-hd">
+            <svg viewBox="0 0 20 20" width="16" height="16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+              <circle cx="10" cy="5" r="3.5" fill="currentColor"/>
+              <path d="M4 19 C4 14 7 11 10 11 C13 11 16 14 16 19" fill="currentColor" opacity="0.8"/>
+              <path d="M2 4 Q4 5 2 6" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+              <path d="M18 4 Q16 5 18 6" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+            </svg>
+            Mereu Pay — Trusted · Instant · Zero fees
+          </div>
+          <div class="pmt-inst-body">
+            <div class="pmt-inst-row"><span class="pmt-inst-num" style="background:var(--mereu-dark)">1</span><span>Open your <strong>Mereu Pay</strong> app or dial <strong style="font-family:var(--fm)">*456#</strong></span></div>
+            <div class="pmt-inst-row"><span class="pmt-inst-num" style="background:var(--mereu-dark)">2</span><span>Send to merchant: <strong style="font-family:var(--fm);color:var(--mereu)">TechMedixLink</strong></span></div>
+            <div class="pmt-inst-row"><span class="pmt-inst-num" style="background:var(--mereu-dark)">3</span><span>Reference: <strong style="font-family:var(--fm);color:var(--mereu-dark)">{{ paymentReq?.request_number }}</strong></span></div>
+            <div class="pmt-inst-row"><span class="pmt-inst-num" style="background:var(--mereu-dark)">4</span><span>Amount: <strong style="font-family:var(--fm)">{{ tzs(paymentReq?.balance_due||0) }}</strong></span></div>
+            <div style="margin-top:var(--s2);font-size:var(--txs);color:var(--mereu-dark);display:flex;align-items:center;gap:6px">
+              <i class="fas fa-bolt"></i> Payment confirmed instantly — no 24-hour wait
+            </div>
+          </div>
+        </div>
+
+        <!-- Tigo / Airtel instructions -->
+        <div v-if="['tigo_pesa','airtel_money'].includes(pmtF.method) && !isAdmin" class="pmt-instructions pmt-inst-blue">
+          <div class="pmt-inst-hd"><i class="fas fa-circle-info"></i> How to pay via {{ pmtF.method==='tigo_pesa'?'Tigo Pesa':'Airtel Money' }}</div>
+          <div class="pmt-inst-body">
+            <div class="pmt-inst-row"><span class="pmt-inst-num">1</span><span>Open {{ pmtF.method==='tigo_pesa'?'Tigo Pesa':'Airtel Money' }} on your phone</span></div>
+            <div class="pmt-inst-row"><span class="pmt-inst-num">2</span><span>Select <strong>Pay Bill / Business</strong></span></div>
+            <div class="pmt-inst-row"><span class="pmt-inst-num">3</span><span>Merchant: <strong>TechMedixLink</strong> · Ref: <strong style="font-family:var(--fm);color:var(--philips)">{{ paymentReq?.request_number }}</strong></span></div>
+            <div class="pmt-inst-row"><span class="pmt-inst-num">4</span><span>Enter the <strong>confirmation code</strong> from your SMS below</span></div>
+          </div>
+        </div>
+
+        <!-- Bank Transfer instructions -->
+        <div v-if="pmtF.method==='bank_transfer' && !isAdmin" class="pmt-instructions pmt-inst-blue">
+          <div class="pmt-inst-hd"><i class="fas fa-building-columns"></i> Bank transfer details</div>
+          <div class="pmt-inst-body">
+            <div class="pmt-inst-row"><span class="pmt-inst-num">·</span><span>Bank: <strong>CRDB Bank</strong></span></div>
+            <div class="pmt-inst-row"><span class="pmt-inst-num">·</span><span>Account name: <strong>TechMedixLink Ltd</strong></span></div>
+            <div class="pmt-inst-row"><span class="pmt-inst-num">·</span><span>Account number: <strong style="font-family:var(--fm)">01J1234567890</strong></span></div>
+            <div class="pmt-inst-row"><span class="pmt-inst-num">·</span><span>Reference: <strong style="font-family:var(--fm);color:var(--philips)">{{ paymentReq?.request_number }}</strong></span></div>
+            <div class="pmt-inst-row"><span class="pmt-inst-num">·</span><span>Upload payment slip or enter transaction ID below</span></div>
+          </div>
+        </div>
+
+        <!-- Cash instructions -->
+        <div v-if="pmtF.method==='cash'" class="pmt-instructions pmt-inst-amber">
+          <div class="pmt-inst-hd"><i class="fas fa-handshake"></i> Cash payment arrangement</div>
+          <div class="pmt-inst-body">
+            <div class="pmt-inst-row"><span class="pmt-inst-num">1</span><span>Our team will contact you to arrange in-person payment</span></div>
+            <div class="pmt-inst-row"><span class="pmt-inst-num">2</span><span>Payment location: <strong>Dar es Salaam office</strong> or delivery agent</span></div>
+            <div class="pmt-inst-row"><span class="pmt-inst-num">3</span><span>You will receive a <strong>printed receipt</strong> at time of payment</span></div>
+            <div style="margin-top:var(--s2);font-size:var(--txs);color:var(--warn-dark,#8a6000);display:flex;align-items:center;gap:6px">
+              <i class="fas fa-clock"></i> Admin will confirm and arrange within 24 hours
+            </div>
+          </div>
+        </div>
+
+        <!-- Amount input -->
         <div class="fg">
-          <label class="lbl req">Payment amount (TZS)</label>
+          <label class="lbl req">Amount (TZS)</label>
           <input type="number" v-model.number="pmtF.amount" min="0"
             :max="paymentReq.balance_due||undefined" class="inp"
-            style="font-size:18px;font-weight:700;font-family:var(--fm)"
+            style="font-size:20px;font-weight:800;font-family:var(--fm)"
             :placeholder="paymentReq.balance_due">
-          <!-- Remaining after this payment -->
-          <div v-if="pmtF.amount>0" class="hint" :class="Math.max(0,(paymentReq.balance_due||0)-pmtF.amount)===0?'':' wn'">
+          <div v-if="pmtF.amount>0" class="hint" :class="Math.max(0,(paymentReq.balance_due||0)-pmtF.amount)===0?'ok':'wn'">
             <i class="fas fa-info-circle"></i>
-            Remaining after payment:
-            <strong>{{  tzs(Math.max(0,(paymentReq.balance_due||0)-(pmtF.amount||0)))  }}</strong>
-            <span v-if="Math.max(0,(paymentReq.balance_due||0)-pmtF.amount)===0"
-              style="color:var(--ok);font-weight:600"> · Fully settled ✓</span>
+            Remaining: <strong>{{ tzs(Math.max(0,(paymentReq.balance_due||0)-(pmtF.amount||0))) }}</strong>
+            <span v-if="Math.max(0,(paymentReq.balance_due||0)-pmtF.amount)===0" style="color:var(--ok);font-weight:700"> · Fully settled ✓</span>
           </div>
         </div>
 
-        <!-- Method + Type -->
-        <div class="fr2">
-          <div class="fg">
-            <label class="lbl req">Payment method</label>
-            <select v-model="pmtF.method" class="sel">
-              <option value="mpesa">M-Pesa</option>
-              <option value="tigo_pesa">Tigo Pesa</option>
-              <option value="airtel_money">Airtel Money</option>
-              <option value="bank_transfer">Bank Transfer</option>
-              <option value="card">Card</option>
-            </select>
-          </div>
-          <div class="fg">
-            <label class="lbl req">Payment type</label>
-            <select v-model="pmtF.type" class="sel">
-              <option value="deposit">Deposit (50%)</option>
-              <option value="balance">Balance payment</option>
-              <option value="full">Full payment</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Phone (mobile money only) -->
-        <div class="fg" v-if="['mpesa','tigo_pesa','airtel_money'].includes(pmtF.method)">
-          <label class="lbl req">Mobile number used for payment</label>
-          <input type="tel" v-model="pmtF.phone" class="inp" placeholder="+255 7XX XXX XXX">
-          <div class="hint">The number you sent the payment from</div>
-        </div>
-
-        <!-- Reference -->
+        <!-- Payment type -->
         <div class="fg">
-          <label class="lbl" :class="['mpesa','tigo_pesa','airtel_money'].includes(pmtF.method)?'req':''">
-            Transaction reference
+          <label class="lbl req">Payment type</label>
+          <select v-model="pmtF.type" class="sel">
+            <option value="deposit">Deposit (30–50%)</option>
+            <option value="balance">Balance payment</option>
+            <option value="full">Full payment</option>
+          </select>
+        </div>
+
+        <!-- Phone — mobile money only -->
+        <div class="fg" v-if="['mpesa','tigo_pesa','airtel_money'].includes(pmtF.method)">
+          <label class="lbl req">Mobile number used</label>
+          <input type="tel" v-model="pmtF.phone" class="inp" placeholder="+255 7XX XXX XXX">
+          <div class="hint">The number you paid from</div>
+        </div>
+
+        <!-- Transaction reference — not needed for cash -->
+        <div class="fg" v-if="pmtF.method!=='cash'">
+          <label class="lbl" :class="pmtF.method!=='bank_transfer'?'req':''">
+            {{ pmtF.method==='mereu_pay'?'Mereu Pay transaction ID':pmtF.method==='bank_transfer'?'Transaction ID / slip number':'Confirmation code' }}
           </label>
           <input type="text" v-model="pmtF.reference" class="inp"
-            placeholder="e.g. QC234567YX"
-            style="text-transform:uppercase;font-family:var(--fm);letter-spacing:0.04em">
+            :placeholder="pmtF.method==='mereu_pay'?'e.g. MPY-2026-XXXXXX':pmtF.method==='bank_transfer'?'e.g. TRF123456789':'e.g. QHX1234ABC'"
+            style="text-transform:uppercase;font-family:var(--fm);letter-spacing:0.05em">
           <div class="hint" v-if="['mpesa','tigo_pesa','airtel_money'].includes(pmtF.method)">
-            <i class="fas fa-mobile-alt"></i>
-            Find this in the SMS confirmation from {{  pmtF.method==='mpesa'?'M-Pesa':pmtF.method==='tigo_pesa'?'Tigo Pesa':'Airtel Money'  }}
+            <i class="fas fa-sms"></i> Find this in the confirmation SMS
           </div>
         </div>
 
@@ -2660,7 +3240,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         <!-- ── PHOTO MODE ── -->
         <template v-if="!pd3dMode">
-          <img v-if="activeDetailImage||viewedProduct.image_url" :src="activeDetailImage||viewedProduct.image_url" :alt="viewedProduct.name" class="pd-hero-img">
+          <img v-if="activeDetailImage||viewedProduct.image_url" :src="activeDetailImage||viewedProduct.image_url" :alt="viewedProduct.name" class="pd-hero-img pd-hero-img-click" @click="showLightbox=true;lightboxImg=activeDetailImage||viewedProduct.image_url" style="cursor:zoom-in" title="Click to enlarge">
           <div v-else class="pd-hero-ph">
             <i :class="viewedProduct.product_type==='medical_device'?'fas fa-stethoscope':viewedProduct.product_type==='electronics'?'fas fa-microchip':'fas fa-boxes-stacked'" style="font-size:48px;color:rgba(255,255,255,0.3)"></i>
           </div>
@@ -2830,11 +3410,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         <!-- RIGHT: action panel (sticky) -->
         <div class="pd-panel">
-          <!-- Price block -->
+          <!-- Price block — improved with estimate -->
           <div class="pd-price-block">
+            <div style="font-size:10px;font-weight:700;color:var(--tx-4);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:var(--s2)">Starting from</div>
             <div class="pd-price-usd">${{  fNum(viewedProduct.base_price_usd)  }} <span style="font-size:13px;font-weight:400;color:var(--tx-3)">USD</span></div>
-            <div class="pd-price-tzs">≈ {{  tzs(Math.round(viewedProduct.base_price_usd * usdToTzs))  }}</div>
-            <div v-if="viewedProduct.base_price_eur" style="font-size:var(--txs);color:var(--tx-3);margin-top:2px">€{{  fNum(viewedProduct.base_price_eur)  }} EUR</div>
+            <div class="pd-price-tzs">≈ TZS {{  fNum(Math.round(viewedProduct.base_price_usd * usdToTzs))  }}</div>
+            <div style="height:1px;background:var(--ln-1);margin:var(--s3) 0"></div>
+            <div style="font-size:10px;color:var(--tx-4);line-height:1.7">
+              <div style="display:flex;justify-content:space-between"><span>Base price</span><span style="font-family:var(--fm)">{{ tzs(Math.round(viewedProduct.base_price_usd * usdToTzs)) }}</span></div>
+              <div style="display:flex;justify-content:space-between"><span>Est. shipping (~8%)</span><span style="font-family:var(--fm)">{{ tzs(Math.round(viewedProduct.base_price_usd * usdToTzs * 0.08)) }}</span></div>
+              <div style="display:flex;justify-content:space-between"><span>Service fee (~10%)</span><span style="font-family:var(--fm)">{{ tzs(Math.round(viewedProduct.base_price_usd * usdToTzs * 0.10)) }}</span></div>
+              <div style="display:flex;justify-content:space-between;font-weight:700;color:var(--tx-2);border-top:1px solid var(--ln-1);padding-top:4px;margin-top:4px"><span>Est. total</span><span style="font-family:var(--fm);color:var(--philips)">{{ tzs(Math.round(viewedProduct.base_price_usd * usdToTzs * 1.18)) }}</span></div>
+            </div>
+            <div style="font-size:9px;color:var(--tx-4);margin-top:var(--s2);text-align:center;line-height:1.5">Exact quote provided within 24h after request</div>
           </div>
 
           <!-- Stock status only in panel — platform already shown in hero -->
@@ -2842,16 +3430,34 @@ document.addEventListener('DOMContentLoaded', () => {
             <span :class="['pc-stock',stockClass(viewedProduct.stock_quantity)]" style="font-size:var(--tsm);font-weight:600">{{  stockLabel(viewedProduct.stock_quantity)  }}</span>
           </div>
 
-          <!-- CTA buttons -->
-          <button v-if="canBuy" @click="quickRequest(viewedProduct);showProductDetail=false" class="btn btn-p" style="width:100%;margin-bottom:var(--s2)" :disabled="!viewedProduct.is_active">
-            <i class="fas fa-cart-plus"></i>Request This Product
+          <!-- Quantity stepper -->
+          <div v-if="canBuy||!profile" style="display:flex;align-items:center;gap:var(--s2);margin-bottom:var(--s3)">
+            <span style="font-size:var(--txs);color:var(--tx-3);flex:1">Quantity</span>
+            <button type="button" @click="pdQty=Math.max(1,pdQty-1)" class="btn btn-g btn-sq" style="width:32px;height:32px;font-size:14px;padding:0;justify-content:center">−</button>
+            <span style="font-family:var(--fm);font-size:16px;font-weight:700;min-width:28px;text-align:center;color:var(--tx-1)">{{ pdQty }}</span>
+            <button type="button" @click="pdQty++" class="btn btn-g btn-sq" style="width:32px;height:32px;font-size:14px;padding:0;justify-content:center">+</button>
+          </div>
+          <!-- CTA buttons — only ONE primary action shown at a time -->
+          <!-- Logged in buyer -->
+          <button v-if="profile && canBuy" @click="quickRequestWithQty(viewedProduct,pdQty);showProductDetail=false" class="btn btn-p pd-cta-btn">
+            <i class="fas fa-cart-plus"></i>Request{{ pdQty>1?' × '+pdQty:'' }}
           </button>
-          <button v-if="!profile" @click="showAuth=true;showProductDetail=false" class="btn btn-p" style="width:100%;margin-bottom:var(--s2)">
-            <i class="fas fa-sign-in-alt"></i>Sign in to Request
+          <!-- Add to basket -->
+          <button v-if="profile && canBuy" @click="addToBasket(viewedProduct)" class="btn btn-s pd-cta-btn" style="margin-top:var(--s2)">
+            <i class="fas fa-basket-shopping"></i>Add to Basket
           </button>
-          <button v-if="canSell&&viewedProduct.user_id===profile?.id" @click="openListingModal(viewedProduct);showProductDetail=false" class="btn btn-s" style="width:100%;margin-bottom:var(--s2)">
+          <!-- Not logged in -->
+          <button v-if="!profile" @click="showAuth=true;showProductDetail=false" class="btn btn-p pd-cta-btn">
+            <i class="fas fa-sign-in-alt"></i>Sign In to Request
+          </button>
+          <!-- Seller viewing own listing -->
+          <button v-if="profile && !canBuy && canSell && viewedProduct.user_id===profile?.id" @click="openListingModal(viewedProduct);showProductDetail=false" class="btn btn-s pd-cta-btn">
             <i class="fas fa-pen"></i>Edit My Listing
           </button>
+          <!-- Seller viewing someone else's listing -->
+          <div v-if="profile && !canBuy && canSell && viewedProduct.user_id!==profile?.id" class="info-strip ac" style="text-align:center;justify-content:center;font-size:var(--txs)">
+            <i class="fas fa-info-circle" style="color:var(--info)"></i>Switch to buyer role to request products
+          </div>
 
           <!-- Delivery info box -->
           <div class="pd-info-box">
@@ -2863,10 +3469,10 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
 
           <!-- Share / track -->
-          <div style="display:flex;gap:var(--s2);margin-top:var(--s3)">
+          <!-- Bottom actions -->
+          <div style="display:flex;gap:var(--s2);margin-top:var(--s2)">
             <button @click="showProductDetail=false;goTab('browse')" class="btn btn-g btn-sm" style="flex:1"><i class="fas fa-arrow-left"></i>Back</button>
-            <button v-if="canBuy" @click="addToBasket(viewedProduct)" class="btn btn-s btn-sm btn-sq" title="Save to basket for later"><i class="fas fa-basket-shopping" style="font-size:11px"></i></button>
-            <button v-if="canBuy" @click="showReqModal=true;rF.source_type='manual';rF.custom_name=viewedProduct.name;showProductDetail=false" class="btn btn-s btn-sm" style="flex:1" title="Custom request"><i class="fas fa-pen"></i>Custom</button>
+            <button v-if="canBuy" @click="showReqModal=true;rF.source_type='manual';rF.custom_name=viewedProduct.name;showProductDetail=false" class="btn btn-s btn-sm" title="Custom sourcing request"><i class="fas fa-pen"></i>Custom</button>
             <a :href="'https://wa.me/?text='+encodeURIComponent('Check out '+viewedProduct.name+' on TechMedixLink — '+tzs(Math.round(viewedProduct.base_price_usd*(usdToTzs||2672)))+'. Visit: https://techmedixlinkmereu.github.io/GLOBAL-LOCAL')" target="_blank" class="btn btn-g btn-sm btn-sq" title="Share on WhatsApp" style="background:rgba(37,211,102,0.1);border-color:rgba(37,211,102,0.3);color:#1a8a3a"><i class="fab fa-whatsapp" style="font-size:14px"></i></a>
           </div>
         </div>
@@ -2972,6 +3578,13 @@ document.addEventListener('DOMContentLoaded', () => {
           <i class="fas fa-rotate-left" style="color:var(--info)"></i>
           <span>Your basket was restored from your last session.</span>
           <button @click="basketRestored=false" class="btn btn-g btn-xs" style="margin-left:auto"><i class="fas fa-times"></i></button>
+        </div>
+        <!-- Large order warning -->
+        <div v-if="basket.some(i=>Math.round(i.product.base_price_usd*(usdToTzs||2672))>5000000)" class="info-strip wn" style="margin-bottom:var(--s3)">
+          <i class="fas fa-triangle-exclamation" style="color:var(--warn);flex-shrink:0"></i>
+          <div style="font-size:var(--txs);color:var(--warn);line-height:1.6">
+            <strong>Large order detected.</strong> Orders over TZS 5M require a 30% deposit. Delivery timeline and exact costs will be confirmed in your quote within 24 hours.
+          </div>
         </div>
         <div v-for="item in basket" :key="item.product.id" class="basket-row">
           <div class="basket-img">
@@ -3162,7 +3775,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
 <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script type="module" src="js/main.js?v10"></script>
+<script type="module" src="js/main.js?v15"></script>
 <script>
 // Register service worker for cache control
 if ('serviceWorker' in navigator) {
