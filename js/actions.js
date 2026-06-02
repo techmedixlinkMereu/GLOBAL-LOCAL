@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────────
 // TechMedixLink · js/actions.js
-// All business logic functions — imports state + db, no Vue setup()  
+// All business logic functions — imports state + db, no Vue setup()
 // ─────────────────────────────────────────────────────────────────
 
 import { sb } from './db.js';
