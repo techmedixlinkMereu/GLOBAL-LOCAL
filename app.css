@@ -244,7 +244,7 @@ input,select,textarea{font-family:var(--fb)}
 .tbl tbody tr:hover td{background:var(--philips-l) !important;color:var(--tx-1)}
 
 /* ══ PRODUCT CARDS — Amazon layout + Philips imagery ══ */
-.prod-grid{display:flex;flex-wrap:wrap;gap:var(--s5)}.prod-grid>.prod-card{flex:1 1 210px;max-width:290px}
+.prod-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:var(--s4); }
 .prod-card{background:white;border:1px solid var(--ln-1);border-radius:var(--r3);display:flex;flex-direction:column;transition:box-shadow var(--fast),border-color var(--fast),transform var(--fast);position:relative;overflow:hidden;box-shadow:var(--sh1)}
 .prod-card:hover{box-shadow:var(--sh3);border-color:var(--philips);transform:translateY(-2px)}
 .pc-img{width:100%;height:180px;position:relative;overflow:hidden;background:#ffffff;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--ln-0)}
@@ -463,7 +463,7 @@ input,select,textarea{font-family:var(--fb)}
   .req-fin>.fin-c{flex:1 1 calc(50% - var(--s2))}
   .modal-bg{padding:var(--s2);align-items:flex-end}
   .modal{max-height:90vh;border-radius:var(--r3) var(--r3) 0 0}
-  .prod-grid>.prod-card{flex:1 1 calc(50% - var(--s2));max-width:none}
+  .prod-grid{grid-template-columns:repeat(2,1fr);gap:var(--s2)}
   .content{padding:var(--s3)}
   .kpi-grid>.kpi{flex:1 1 calc(50% - var(--s2))}
 }
@@ -804,7 +804,6 @@ input,select,textarea{font-family:var(--fb)}
 }
 
 @media(max-width:768px){
-  .prod-grid{grid-template-columns:repeat(2,1fr);gap:var(--s3)}
   .mob-bottom-nav{display:block}
   .main{padding-bottom:56px}
   .content{padding-bottom:calc(var(--s5) + 56px)}
@@ -1080,9 +1079,7 @@ input,select,textarea{font-family:var(--fb)}
 .tbl td:first-child { min-width:120px; }
 .tbl td.num-col { min-width:80px; white-space:nowrap; }
 
-/* 72: Fix card overflow clipping shadow */
-.card { overflow:visible; }
-.card > .pc-img, .card > .img-wrap { border-radius:var(--r3) var(--r3) 0 0; overflow:hidden; }
+/* 72: Cards keep overflow:hidden — shadow handled via parent */
 
 /* 75: Better font fallback for Bree Serif */
 :root { --fd:'Bree Serif',Georgia,'Times New Roman',serif; }
@@ -1199,7 +1196,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .sect-hd { flex-wrap:wrap; gap:var(--s2); }
 
   /* Product grid — 2 col on mobile */
-  .prod-grid { grid-template-columns:repeat(2,1fr); gap:var(--s2); }
   .pc-body { padding:var(--s2); }
   .pc-name { font-size:11px; }
   .pc-price { font-size:16px; }
@@ -1269,7 +1265,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 @media (min-width:481px) and (max-width:768px) {
   html { font-size:13.5px; }
   .content { padding:var(--s4) var(--s4) calc(var(--s4) + 56px); }
-  .prod-grid { grid-template-columns:repeat(2,1fr); gap:var(--s3); }
   .kpi-grid>.kpi { flex:1 1 140px; }
   .g2 { grid-template-columns:1fr; }
   .modal-lg { max-width:96vw; }
@@ -1283,14 +1278,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 /* ── LARGE DESKTOP ≥1280px ── */
 @media (min-width:1280px) {
-  .prod-grid { grid-template-columns:repeat(4,1fr); }
   .kpi-grid>.kpi { flex:1 1 160px; }
   .content { padding:var(--s6) var(--s6); max-width:1400px; margin:0 auto; }
 }
 
 /* ── EXTRA LARGE ≥1600px ── */
 @media (min-width:1600px) {
-  .prod-grid { grid-template-columns:repeat(5,1fr); }
 }
 
 /* ── BODY SCROLL LOCK when modal open ── (item 47) */
@@ -1551,13 +1544,222 @@ body.modal-open { overflow:hidden; }
 
 /* Tablet-specific layout improvements */
 @media (min-width:768px) and (max-width:1024px) {
-  .prod-grid { grid-template-columns:repeat(3,1fr); }
   .kpi-grid>.kpi { flex:1 1 130px; }
   .content { padding:var(--s4) var(--s5); }
 }
 
-/* Rate bar colors fix */
-.rate-bar { background:var(--philips-d) !important; }
+/* rate-bar background set in main rule */
 
 /* Offline banner z-index fix */
 .offline-banner { z-index:9998; }
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   DEFINITIVE RESPONSIVE SYSTEM — single source of truth
+   Replaces all previous conflicting media queries for layout
+═══════════════════════════════════════════════════════════════════ */
+
+/* Base prod-grid is auto-fill 220px — adapts automatically */
+/* Override per breakpoint: */
+
+/* Mobile ≤480px — 2 columns, tight */
+@media (max-width:480px) {
+  .prod-grid { grid-template-columns: repeat(2,1fr); gap: var(--s2); }
+  .pc-name   { font-size: 11px; }
+  .pc-price  { font-size: 15px; }
+  .pc-body   { padding: 10px 10px; }
+  .pc-actions { flex-wrap: wrap; gap: 4px; }
+  .pc-actions .btn { font-size: 10px; padding: 5px 8px; }
+
+  /* Content padding mobile */
+  .content { padding: 12px 12px calc(72px + 12px); }
+
+  /* Section headers */
+  .sect-ttl { font-size: 20px; }
+  .sect-hd  { flex-wrap: wrap; gap: 8px; }
+
+  /* KPI 2 per row */
+  .kpi-grid > .kpi { flex: 1 1 calc(50% - 8px); min-width: 0; }
+  .kpi-val          { font-size: 26px; }
+  .kpi-val.xs, .kpi-val.sm { font-size: 14px; }
+
+  /* Modals full screen from bottom */
+  .modal-bg  { padding: 0; align-items: flex-end; }
+  .modal     { max-height: 92vh; border-radius: 16px 16px 0 0; max-width: 100vw; width: 100%; }
+  .modal-body { padding: 16px; }
+  .modal-hd  { padding: 14px 16px 12px; }
+  .modal-ft  { flex-direction: column; }
+  .modal-ft .btn { width: 100%; justify-content: center; }
+
+  /* Admin tables scroll */
+  .tbl-w     { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tbl       { min-width: 560px; font-size: 11px; }
+  .tbl th, .tbl td { padding: 7px 8px; }
+
+  /* Request cards */
+  .req-hd    { flex-wrap: wrap; gap: 4px; }
+  .req-num   { font-size: 11px; }
+  .stepper   { gap: 0; }
+  .step-lbl  { display: none; }
+
+  /* Auth modal always bottom sheet */
+  .auth-brand { font-size: 22px; }
+  .auth-tab   { font-size: 10px; padding: 6px 4px; }
+
+  /* Charts */
+  .chart-c  { height: 160px; }
+  .g2       { grid-template-columns: 1fr !important; gap: 12px; }
+
+  /* Support FAB above mobile nav */
+  a[style*="position:fixed"][style*="bottom"] { bottom: 72px !important; }
+
+  /* Card padding */
+  .card { padding: 14px; }
+
+  /* Topbar on mobile */
+  .topbar { padding: 0 12px; gap: 8px; }
+  .page-ttl { font-size: 15px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Basket row compact */
+  .basket-img { width: 36px; height: 36px; }
+  .basket-row { gap: 10px; }
+
+  /* Landing page */
+  .lp-hero { grid-template-columns: 1fr; }
+  .lp-headline { font-size: 24px; }
+  .lp-cta-row { flex-direction: column; }
+  .lp-cta-btn { width: 100%; justify-content: center; }
+}
+
+/* Tablet 481–768px — 2 or 3 columns */
+@media (min-width:481px) and (max-width:768px) {
+  .prod-grid { grid-template-columns: repeat(2,1fr); gap: var(--s3); }
+  .content   { padding: var(--s4) var(--s4) calc(56px + var(--s4)); }
+  .g2        { grid-template-columns: 1fr; gap: var(--s3); }
+  .modal-lg, .modal-xl { max-width: 96vw; }
+  .tbl-w     { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tbl       { min-width: 540px; }
+  .lp-hero   { grid-template-columns: 1fr; }
+  .kpi-grid > .kpi { flex: 1 1 calc(50% - 8px); }
+  .fr2       { grid-template-columns: 1fr 1fr; }
+}
+
+/* Small laptop 769–1024px — 3 columns */
+@media (min-width:769px) and (max-width:1024px) {
+  .prod-grid { grid-template-columns: repeat(3,1fr); gap: var(--s3); }
+  .content   { padding: var(--s4) var(--s5); }
+  .kpi-grid > .kpi { flex: 1 1 140px; }
+}
+
+/* Desktop 1025–1280px — 4 columns (auto-fill handles this) */
+@media (min-width:1025px) and (max-width:1280px) {
+  .prod-grid { grid-template-columns: repeat(auto-fill,minmax(210px,1fr)); }
+}
+
+/* Large desktop 1281–1600px — 4 columns fixed */
+@media (min-width:1281px) and (max-width:1600px) {
+  .prod-grid { grid-template-columns: repeat(4,1fr); }
+  .content   { padding: var(--s5) var(--s6); max-width: 1400px; margin: 0 auto; }
+}
+
+/* XL desktop >1600px — 5 columns */
+@media (min-width:1601px) {
+  .prod-grid { grid-template-columns: repeat(5,1fr); }
+  .content   { padding: var(--s6) var(--s7); max-width: 1600px; margin: 0 auto; }
+}
+
+/* ── Mobile bottom nav layout fix ── */
+@media (max-width:768px) {
+  .main { margin-left: 0; padding-bottom: 56px; }
+  .content { padding-bottom: calc(56px + var(--s4)); }
+  .mob-bottom-nav { display: block; }
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .sb-backdrop.show { display: block; }
+  .sb-close { display: flex; }
+  .mob-btn { display: flex; }
+}
+
+/* ── Desktop sidebar always visible ── */
+@media (min-width:769px) {
+  .main { margin-left: var(--sw); }
+  .mob-bottom-nav { display: none !important; }
+  .mob-btn { display: none; }
+}
+
+/* ── Fix fr2/fr3 grid on mobile ── */
+@media (max-width:520px) {
+  .fr2 { grid-template-columns: 1fr; }
+  .fr3 { grid-template-columns: 1fr; }
+}
+@media (min-width:521px) {
+  .fr2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); }
+}
+
+/* ── Fix modal max-width on all screens ── */
+@media (min-width:769px) {
+  .modal    { max-width: 540px; }
+  .modal-lg { max-width: 680px; }
+  .modal-xl { max-width: 820px; }
+  .modal-sm { max-width: 400px; }
+  .modal-bg { align-items: flex-start; padding: var(--s4); }
+}
+
+/* ── Fix topbar on mobile ── */
+@media (max-width:860px) {
+  .srch-w { display: none; }
+  .tb-r > .srch-w { display: none; }
+  .topbar, .rate-bar { padding: 0 var(--s4); }
+}
+
+/* ── Fix admin user grid on mobile ── */
+@media (max-width:640px) {
+  .admin-user-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Fix messages panel width ── */
+@media (max-width:768px) {
+  .messages-panel { width: 100vw; right: 0; left: 0; }
+}
+@media (min-width:769px) {
+  .messages-panel { width: 480px; }
+}
+
+/* ── Fix lp-trust grid on mobile ── */
+@media (max-width:480px) {
+  .lp-trust { grid-template-columns: 1fr 1fr; gap: 8px; }
+}
+
+/* ── Fix triage items stacking on mobile ── */
+@media (max-width:600px) {
+  .triage-items { flex-direction: column; }
+}
+
+/* ── Prevent text overflow in cards ── */
+.prod-card, .req-card, .kpi, .card-sm, .admin-user-card {
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ── Ensure images never overflow containers ── */
+img { max-width: 100%; height: auto; }
+.pc-img img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ── Fix btn wrapping on mobile ── */
+@media (max-width:480px) {
+  .req-card .btn { white-space: nowrap; font-size: 10px; }
+  .sect-hd .btn  { font-size: 11px; padding: 6px 10px; }
+}
+
+/* ── Table scroll hint on mobile ── */
+@media (max-width:768px) {
+  .tbl-w { position: relative; }
+  .tbl-w::after {
+    content: '← swipe to see more →';
+    display: block;
+    text-align: center;
+    font-size: 9px;
+    color: var(--tx-4);
+    padding: 4px;
+  }
+}
