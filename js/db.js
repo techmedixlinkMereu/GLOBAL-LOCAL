@@ -8,4 +8,4 @@ import { TECHMEDIX_CONFIG } from '../config.js';
 export const sb = supabase.createClient(
   TECHMEDIX_CONFIG.supabase.url,
   TECHMEDIX_CONFIG.supabase.anonKey
-);  
+);
