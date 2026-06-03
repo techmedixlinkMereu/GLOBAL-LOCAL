@@ -39,7 +39,10 @@ import {
   reqTemplates,
   productAccessories,
   priceAlerts,
-  dutyCategory, dutyValue, dutyResult, verifiedSellers
+  dutyCategory, dutyValue, dutyResult, verifiedSellers,
+  adminDateFrom, adminDateTo,
+  productRequests, newProductRequest, newsletterEmail,
+  recentlyViewed, showSearchSuggestions
 } from './state.js';
 
 import { fStatus, tzs, fDate, fDateTime } from './formatters.js';
@@ -357,7 +360,7 @@ export async function doLogin() {
     if (found?.email) { email = found.email; }
     else { loading.value = false; authErr.value = 'No account found. Try your email address.'; return; }
   }
-  const { error } = await sb.auth.signInWithPassword({ email, password: aF.password });
+  const { error } = await sb.auth.signInWithPassword({ email, password: aF.password, options: { persistSession: aF.rememberMe !== false } });
   loading.value = false;
   if (error) {
     const msg = error.message || '';
@@ -428,7 +431,7 @@ export async function doSignup() {
   if (data?.user) {
     await sb.from('users').insert({
       id: data.user.id, email: aF.email, full_name: aF.full_name,
-      phone: aF.phone || null, user_role: aF.user_role, user_type: aF.user_type,
+      phone: aF.phone ? (aF.phoneCode||'+255') + aF.phone.replace(/^0+/,'').replace(/\s/g,'') : null, user_role: aF.user_role, user_type: aF.user_type,
       company_name: aF.company_name || null, onboarding_done: false, created_at: new Date().toISOString()
     });
     await loadUserProfile(data.user.id);
@@ -1245,6 +1248,7 @@ export function openReviewModal(r) {
 export async function openProductDetail(p) {
   viewedProduct.value = p; showProductDetail.value = true; pd3dMode.value = false; pdQty.value = 1;
   loadProductAccessories(p.id);
+  trackRecentlyViewed(p);
   pdReviews.value = []; pdLoading.value = true; activeDetailImage.value = null;
   try {
     const { data: rvData } = await sb.from('reviews').select('*')
@@ -1952,5 +1956,110 @@ export async function sendOrderConfirmationEmail(req) {
         platform: req.platform_type,
       }
     });
+  } catch {}
+}
+
+// ── RECENTLY VIEWED ─────────────────────────────────────────────
+export function trackRecentlyViewed(product) {
+  if (!product) return;
+  try {
+    const stored = JSON.parse(sessionStorage.getItem('tml_rv') || '[]');
+    const filtered = stored.filter(p => p.id !== product.id);
+    const updated = [{ id: product.id, name: product.name, base_price_usd: product.base_price_usd, image_url: product.image_url }, ...filtered].slice(0, 6);
+    sessionStorage.setItem('tml_rv', JSON.stringify(updated));
+    recentlyViewed.value = updated;
+  } catch {}
+}
+
+export function loadRecentlyViewed() {
+  try {
+    const stored = JSON.parse(sessionStorage.getItem('tml_rv') || '[]');
+    recentlyViewed.value = stored;
+  } catch {}
+}
+
+// ── SEARCH AUTOCOMPLETE ─────────────────────────────────────────
+// searchSuggestions is a computed in main.js
+
+// ── PRODUCT REQUEST VOTING ──────────────────────────────────────
+export async function loadProductRequests() {
+  try {
+    const { data } = await sb.from('product_requests')
+      .select('*').order('votes', { ascending: false }).limit(5);
+    productRequests.value = data || [];
+  } catch {}
+}
+
+export async function voteProductRequest(id) {
+  try {
+    await sb.from('product_requests').update({ votes: (productRequests.value.find(r=>r.id===id)?.votes||0)+1 }).eq('id', id);
+    await loadProductRequests();
+    toast('ok', 'Vote counted!', 'Thanks for helping us prioritise');
+  } catch {}
+}
+
+export async function submitProductRequest() {
+  if (!newProductRequest.value.trim()) return;
+  try {
+    await sb.from('product_requests').insert({
+      product_name: newProductRequest.value.trim(),
+      requested_by: profile.value?.id,
+      votes: 1
+    });
+    newProductRequest.value = '';
+    await loadProductRequests();
+    toast('ok', 'Request submitted!', 'We'll source this if it gets enough votes');
+  } catch {}
+}
+
+// ── NEWSLETTER ───────────────────────────────────────────────────
+export async function subscribeNewsletter() {
+  if (!newsletterEmail.value) return;
+  try {
+    await sb.from('newsletter_signups').insert({ email: newsletterEmail.value });
+    newsletterEmail.value = '';
+    toast('ok', 'Subscribed!', 'You'll hear from us when new equipment arrives');
+  } catch {}
+}
+
+// ── RAISE DISPUTE ────────────────────────────────────────────────
+export async function raiseDispute(r) {
+  const issue = prompt('Briefly describe the issue with this order:');
+  if (!issue) return;
+  try {
+    await sb.from('disputes').insert({
+      request_id: r.id,
+      raised_by: profile.value?.id,
+      issue
+    });
+    toast('ok', 'Dispute raised', 'Our team will review within 24 hours');
+  } catch {}
+}
+
+// ── SELLER RESPONSE TIME ─────────────────────────────────────────
+export async function updateSellerResponseTime() {
+  if (!profile.value || !['seller','both','admin'].includes(profile.value.user_role)) return;
+  try {
+    // Calculate average hours from quote_sent_at - created_at on accepted requests
+    const { data } = await sb.from('requests')
+      .select('created_at, quoted_date')
+      .not('quoted_date', 'is', null)
+      .limit(10);
+    if (!data?.length) return;
+    const hours = data.map(r => {
+      const diff = new Date(r.quoted_date) - new Date(r.created_at);
+      return diff / 3600000;
+    });
+    const avg = hours.reduce((a,b) => a+b, 0) / hours.length;
+    await sb.from('users').update({ seller_response_time_hours: Math.round(avg * 10) / 10 }).eq('id', profile.value.id);
+  } catch {}
+}
+
+// ── GA4 PAGE VIEW TRACKER ────────────────────────────────────────
+export function trackPageView(page) {
+  try {
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'page_view', { page_title: page, page_location: window.location.href });
+    }
   } catch {}
 }
