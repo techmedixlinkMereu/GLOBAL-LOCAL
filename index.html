@@ -31,7 +31,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="TechMedixLink · Medical Equipment Platform">
 <meta name="twitter:description" content="Tanzania's premier medical equipment sourcing and procurement marketplace.">
-<link rel="stylesheet" href="app.css?v25">
+<link rel="stylesheet" href="app.css?v26">
 <style>
 @keyframes skeleton-pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .basket-pulse .fa-basket-shopping{animation:basket-bounce 0.4s ease}
@@ -190,9 +190,8 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
       <div class="modal-body" style="padding-top:0">
         <div class="auth-tabs">
-          <div class="auth-tab" :class="{active:authTab==='login'}"  @click="authTab='login';authErr=''">Sign In</div>
-          <div class="auth-tab" :class="{active:authTab==='magic'}"  @click="authTab='magic';authErr=''">Magic Link</div>
-          <div class="auth-tab" :class="{active:authTab==='signup'}" @click="authTab='signup';authErr=''">Sign Up</div>
+          <div class="auth-tab" :class="{active:authTab==='login'||authTab==='magic'||authTab==='reset'}" @click="authTab='login';authErr=''">Sign In</div>
+          <div class="auth-tab" :class="{active:authTab==='signup'}" @click="authTab='signup';authErr=''">Create Account</div>
         </div>
         <!-- LOGIN -->
         <div v-if="authTab==='login'">
@@ -203,9 +202,18 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="hint"><i class="fas fa-info-circle"></i> You can sign in with your email address, phone number (+255…) or full name</div>
           </div>
           <div class="fg"><label class="lbl req">Password</label><input type="password" v-model="aF.password" class="inp" placeholder="••••••••" autocomplete="current-password" @keydown.enter="doLogin"></div>
-          <button @click="doLogin" class="btn btn-p btn-wc" style="margin-bottom:var(--s3)" :disabled="!aF.loginId||!aF.password"><i class="fas fa-sign-in-alt"></i> Sign In</button>
-          <p style="text-align:center;font-size:var(--txs);color:var(--tx-3);margin-top:var(--s2)">No password? <span @click="authTab='magic'" style="color:var(--a);cursor:pointer;font-weight:600">Use magic link →</span></p>
-          <p style="text-align:center;font-size:var(--txs);color:var(--tx-3);margin-top:var(--s1)">Forgot password? <span @click="authTab='reset'" style="color:var(--a);cursor:pointer;font-weight:600">Reset it →</span></p>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--s3)">
+            <label class="chk" style="gap:6px"><input type="checkbox" v-model="aF.rememberMe" style="accent-color:var(--philips)"><span style="font-size:11px;color:var(--tx-3)">Remember me</span></label>
+            <span @click="authTab='reset';authErr=''" style="font-size:11px;color:var(--philips);cursor:pointer;font-weight:600">Forgot password?</span>
+          </div>
+          <button @click="doLogin" class="btn btn-p btn-wc" :disabled="!aF.loginId||!aF.password"><i class="fas fa-sign-in-alt"></i> Sign In</button>
+          <div style="display:flex;align-items:center;gap:var(--s3);margin-top:var(--s3)">
+            <div style="flex:1;height:1px;background:var(--ln-1)"></div>
+            <span style="font-size:11px;color:var(--tx-4)">or</span>
+            <div style="flex:1;height:1px;background:var(--ln-1)"></div>
+          </div>
+          <button @click="authTab='magic';authErr=''" class="btn btn-s btn-wc" style="margin-top:var(--s3)"><i class="fas fa-wand-magic-sparkles"></i> Sign in with Magic Link</button>
+          <p style="text-align:center;font-size:11px;color:var(--tx-4);margin-top:var(--s3)">New to TechMedixLink? <span @click="authTab='signup';authErr=''" style="color:var(--philips);cursor:pointer;font-weight:600">Create an account →</span></p>
         </div>
         <!-- MAGIC LINK -->
         <div v-if="authTab==='magic'">
@@ -229,7 +237,16 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="fg">
               <label class="lbl req">Phone (Tanzania)</label>
               <div style="display:flex;align-items:center;gap:6px">
-                <span style="font-size:var(--tsm);color:var(--tx-3);white-space:nowrap;padding:10px 10px;background:var(--bg-1);border:1px solid var(--ln-2);border-radius:var(--r2)">🇹🇿 +255</span>
+                <select v-model="aF.phoneCode" class="sel" style="width:90px;flex-shrink:0;padding-left:6px">
+                  <option value="+255">🇹🇿 +255</option>
+                  <option value="+254">🇰🇪 +254</option>
+                  <option value="+256">🇺🇬 +256</option>
+                  <option value="+250">🇷🇼 +250</option>
+                  <option value="+34">🇪🇸 +34</option>
+                  <option value="+44">🇬🇧 +44</option>
+                  <option value="+1">🇺🇸 +1</option>
+                  <option value="+971">🇦🇪 +971</option>
+                </select>
                 <input type="tel" v-model="aF.phone" class="inp" placeholder="7XX XXX XXX" style="flex:1">
               </div>
               <div class="hint">Used for M-Pesa payments and WhatsApp updates</div>
@@ -237,8 +254,11 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="fg">
             <label class="lbl req">Email Address</label>
-            <input type="email" v-model="aF.email" class="inp" placeholder="you@example.com" autocomplete="email">
-            <div class="hint"><i class="fab fa-whatsapp" style="color:#25d366"></i> We'll send order updates to your email. Use phone as your sign-in backup.</div>
+            <input type="email" v-model="aF.email" class="inp" placeholder="you@example.com" autocomplete="email"
+              :style="aF.email&&!aF.email.includes('@')?'border-color:var(--err)':''"
+              @blur="aF._emailTouched=true">
+            <div v-if="aF._emailTouched&&aF.email&&!aF.email.includes('@')" class="ferr" style="margin-top:4px"><i class="fas fa-circle-exclamation"></i> Please enter a valid email address</div>
+            <div v-else class="hint"><i class="fab fa-whatsapp" style="color:#25d366"></i> We'll send order updates to your email.</div>
           </div>
           <div class="fg"><label class="lbl req">Password</label><input type="password" v-model="aF.password" class="inp" placeholder="Minimum 8 characters" autocomplete="new-password">
             <!-- Password strength bar -->
@@ -272,7 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <button @click="doSignup" class="btn btn-p btn-wc" :disabled="!aF.email||!aF.password||!aF.full_name||!tcAccepted"><i class="fas fa-user-plus"></i> Create Account</button>
           <div class="info-strip in" style="margin-top:var(--s3)"><i class="fas fa-envelope" style="color:var(--info);flex-shrink:0"></i><div style="font-size:var(--txs);color:var(--info);line-height:1.5">After signing up, check your inbox for a confirmation email before signing in. Check your spam folder if not received within 2 minutes.</div></div>
-          <div class="info-strip in" style="margin-top:var(--s3)"><i class="fas fa-envelope" style="color:var(--info);flex-shrink:0"></i><div style="font-size:var(--txs);color:var(--info);line-height:1.5">After signing up, check your inbox for a confirmation email before signing in.</div></div>
+
         </div>
         <!-- PASSWORD RESET -->
         <div v-if="authTab==='reset'">
@@ -900,6 +920,24 @@ document.addEventListener('DOMContentLoaded', () => {
             </button>
           </div>
 
+          <!-- ── VERIFIED SELLERS ── -->
+          <div class="lp-sellers-section">
+            <div class="lp-section-ttl">Verified suppliers on TechMedixLink</div>
+            <div class="lp-sellers-grid">
+              <div v-for="seller in verifiedSellers" :key="seller.id" class="lp-seller-card" @click="prodSearch=seller.company_name;goTab('browse')">
+                <div class="lp-seller-av">{{ (seller.company_name||seller.full_name||'?')[0].toUpperCase() }}</div>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:var(--tsm);font-weight:700;color:var(--tx-1)">{{ seller.company_name||seller.full_name }}</div>
+                  <div style="font-size:10px;color:var(--tx-3)">{{ seller.user_type||'Supplier' }}</div>
+                </div>
+                <span class="vbadge" title="Verified supplier"><i class="fas fa-check-circle"></i></span>
+              </div>
+              <div v-if="!verifiedSellers.length" style="grid-column:1/-1;text-align:center;padding:var(--s4);color:var(--tx-4);font-size:12px">
+                Verified suppliers coming soon
+              </div>
+            </div>
+          </div>
+
           <!-- ── HOW IT WORKS ── -->
           <div class="lp-how">
             <div class="lp-section-ttl" style="color:var(--tx-1);margin-bottom:var(--s5)">How TechMedixLink works</div>
@@ -993,6 +1031,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div style="font-size:10px;color:var(--tx-3);margin-top:var(--s2);text-align:center">Seen by buyers actively sourcing equipment</div>
               </div>
+            </div>
+          </div>
+
+          <!-- ── IMPORT DUTY CALCULATOR ── -->
+          <div class="lp-duty-calc">
+            <div class="lp-duty-hd">
+              <div class="lp-duty-icon"><i class="fas fa-calculator"></i></div>
+              <div>
+                <div style="font-family:var(--fd);font-size:20px;color:var(--tx-1)">Import Duty Calculator</div>
+                <div style="font-size:12px;color:var(--tx-3);margin-top:2px">Estimate Tanzania import costs before you order — no sign-in required</div>
+              </div>
+            </div>
+            <div class="lp-duty-form">
+              <div style="flex:1;min-width:180px">
+                <label style="font-size:11px;color:var(--tx-3);display:block;margin-bottom:4px">Product category</label>
+                <select v-model="dutyCategory" class="sel" style="width:100%">
+                  <option value="">Select category…</option>
+                  <option value="medical_device">Medical Device (0–10%)</option>
+                  <option value="diagnostic">Diagnostic Equipment (0%)</option>
+                  <option value="surgical">Surgical Equipment (5%)</option>
+                  <option value="laboratory">Lab Equipment (10%)</option>
+                  <option value="ppe">PPE / Consumables (0–5%)</option>
+                  <option value="electronics">Medical Electronics (10–25%)</option>
+                </select>
+              </div>
+              <div style="flex:1;min-width:140px">
+                <label style="font-size:11px;color:var(--tx-3);display:block;margin-bottom:4px">Product value (USD)</label>
+                <input type="number" v-model.number="dutyValue" class="inp" placeholder="e.g. 5000" style="width:100%">
+              </div>
+              <button @click="calcDuty" class="btn btn-p" style="align-self:flex-end"><i class="fas fa-calculator"></i>Calculate</button>
+            </div>
+            <div v-if="dutyResult" class="lp-duty-result">
+              <div class="lp-duty-row"><span>Product value</span><span>{{ tzs(Math.round(dutyValue*(usdToTzs||2672))) }}</span></div>
+              <div class="lp-duty-row"><span>Import duty ({{ dutyResult.rate }}%)</span><span>{{ tzs(dutyResult.duty) }}</span></div>
+              <div class="lp-duty-row"><span>VAT (18%)</span><span>{{ tzs(dutyResult.vat) }}</span></div>
+              <div class="lp-duty-row"><span>TechMedixLink service (10%)</span><span>{{ tzs(dutyResult.service) }}</span></div>
+              <div class="lp-duty-row lp-duty-total"><span>Estimated landed cost</span><span>{{ tzs(dutyResult.total) }}</span></div>
+              <div style="font-size:10px;color:var(--tx-4);margin-top:var(--s2);text-align:center">Estimates only. Actual duty depends on HS code and TMDA classification.</div>
+              <button @click="showAuth=true" class="btn btn-p btn-wc" style="margin-top:var(--s3)"><i class="fas fa-file-invoice"></i>Get exact quote for this item</button>
             </div>
           </div>
 
@@ -1334,6 +1411,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <button v-else-if="(r.balance_due||0)>0" @click="askPayment(r)" class="btn btn-p btn-sm" style="flex:1;justify-content:center;font-weight:700"><i class="fas fa-credit-card"></i>Pay {{ tzs(r.balance_due) }}</button>
             <button v-else-if="r.status==='delivered'" @click="confirmReceipt(r)" class="btn btn-ok btn-sm" style="flex:1;justify-content:center;font-weight:700"><i class="fas fa-box-open"></i>Confirm Receipt</button>
             <button v-else-if="r.status==='completed'&&!r.reviewed" @click="openReviewModal(r)" class="btn btn-s btn-sm" style="flex:1;justify-content:center"><i class="fas fa-star"></i>Leave Review</button>
+            <button v-if="['completed','delivered','installed'].includes(r.status)" @click="reorderRequest(r)" class="btn btn-g btn-sm btn-sq" title="Reorder — pre-fill same items"><i class="fas fa-rotate-right" style="font-size:11px"></i></button>
             <button v-else @click="openDetailModal(r)" class="btn btn-g btn-sm" style="flex:1;justify-content:center"><i class="fas fa-eye"></i>View Details</button>
             <!-- SECONDARY actions -->
             <button @click="openDetailModal(r)" class="btn btn-g btn-sm btn-sq" title="Details"><i class="fas fa-eye" style="font-size:11px"></i></button>
@@ -1381,6 +1459,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button @click="openListingModal(p)" class="btn btn-p btn-sm" style="flex:1"><i class="fas fa-pen"></i>Edit</button>
                 <button @click="openProductDetail(p)" class="btn btn-g btn-xs btn-sq" title="Preview as buyer" aria-label="Preview as buyer"><i class="fas fa-eye" style="font-size:10px"></i></button>
                 <button @click="toggleListingStatus(p)" class="btn btn-s btn-xs btn-sq" :title="p.is_active?'Hide listing':'Activate listing'"><i :class="p.is_active?'fas fa-eye-slash':'fas fa-circle-check'" style="font-size:10px"></i></button>
+                <button v-if="p.is_active" @click="pauseListing(p)" class="btn btn-wn btn-xs btn-sq" title="Pause — mark as temporarily unavailable"><i class="fas fa-pause" style="font-size:10px"></i></button>
                 <button @click="askDeleteProduct(p)" class="btn btn-d btn-xs btn-sq" title="Delete listing" aria-label="Delete listing"><i class="fas fa-trash" style="font-size:10px"></i></button>
               </div>
             </div>
@@ -2982,10 +3061,16 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="fg">
           <label class="lbl req">Payment type</label>
           <select v-model="pmtF.type" class="sel">
-            <option value="deposit">Deposit (30–50%)</option>
+            <option value="deposit">Deposit (30%)</option>
+            <option value="instalment_2">Instalment 2 of 3</option>
+            <option value="instalment_3">Instalment 3 of 3 (final)</option>
             <option value="balance">Balance payment</option>
             <option value="full">Full payment</option>
           </select>
+          <div v-if="pmtF.type&&pmtF.type.startsWith('instalment')" class="info-strip ac" style="margin-top:var(--s2)">
+            <i class="fas fa-info-circle" style="color:var(--info);flex-shrink:0"></i>
+            <div style="font-size:var(--txs);color:var(--info)">Instalment plan: 30% deposit → 35% on shipment → 35% on delivery</div>
+          </div>
         </div>
 
         <!-- Phone — mobile money only -->
@@ -3880,7 +3965,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
 <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script type="module" src="js/main.js?v25"></script>
+<script type="module" src="js/main.js?v26"></script>
 <script>
 // Register service worker for cache control
 if ('serviceWorker' in navigator) {
