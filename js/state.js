@@ -108,6 +108,7 @@ export const authErr         = ref('');
 export const magicSent       = ref(false);
 export const aF = reactive({
   email: '', password: '', full_name: '', phone: '',
+  phoneCode: '+255', rememberMe: false, _emailTouched: false,
   user_role: 'buyer', user_type: 'individual', company_name: '', loginId: ''
 });
 
@@ -266,3 +267,12 @@ export const dutyCategory  = ref('');
 export const dutyValue     = ref(0);
 export const dutyResult    = ref(null);
 export const verifiedSellers = ref([]);
+
+// ── 50-feature additions ─────────────────────────────────────────
+export const productRequests      = ref([]);
+export const newProductRequest    = ref('');
+export const newsletterEmail      = ref('');
+export const recentlyViewed       = ref([]);
+export const showSearchSuggestions = ref(false);
+export const rF_budget_code       = ref('');
+// rF already has budget_code wired in HTML via v-model
