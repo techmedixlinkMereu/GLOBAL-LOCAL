@@ -475,9 +475,7 @@ const app = createApp({
                 if (payload.new?.user_id !== S.profile.value.id && !isAdmin.value) return;
                 await A.loadPayments(); await A.loadReqs();
               })
-              .subscribe((status) => {
-                if (status === 'SUBSCRIBED')
-              });
+              .subscribe();
 
             window.addEventListener('beforeunload', () => { sb.removeChannel(realtimeChannel); });
 
@@ -534,7 +532,7 @@ const app = createApp({
 
       // Formatters (bound for template use)
       fNum: F.fNum, tzs: F.tzs, fDate: F.fDate, fDateTime: F.fDateTime,
-      fEvent: F.fEvent, fCountdown: F.fCountdown, stockLabel: F.stockLabel,   
+      fEvent: F.fEvent, fCountdown: F.fCountdown, stockLabel: F.stockLabel,
       stockClass: F.stockClass, roleLabel: F.roleLabel, roleIcon: F.roleIcon,
       fStatus: (s) => F.fStatus(S.statusList, s),
       sBadge: F.sBadge,
