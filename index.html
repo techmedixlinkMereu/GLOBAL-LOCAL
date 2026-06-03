@@ -31,7 +31,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="TechMedixLink · Medical Equipment Platform">
 <meta name="twitter:description" content="Tanzania's premier medical equipment sourcing and procurement marketplace.">
-<link rel="stylesheet" href="app.css?v22">
+<link rel="stylesheet" href="app.css?v23">
 <style>
 @keyframes skeleton-pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .basket-pulse .fa-basket-shopping{animation:basket-bounce 0.4s ease}
@@ -183,8 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="auth-wrap">
         <div class="auth-mark"><i class="fas fa-heart-pulse"></i></div>
         <div style="display:flex;align-items:center;justify-content:center;gap:var(--s2);margin-bottom:var(--s2)">
-          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230a1f3c'/%3E%3Cpath d='M36 0 L64 0 L64 64 L24 64 L24 0 Z' fill='%23112244'/%3E%3Cline x1='32' y1='6' x2='32' y2='58' stroke='rgba(255,255,255,0.1)' stroke-width='1'/%3E%3Cpolyline points='4,32 10,32 14,22 20,42 24,28 28,32 32,32' stroke='%234dc8d0' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Ccircle cx='48' cy='32' r='13' stroke='%233a9bd5' stroke-width='2' fill='none'/%3E%3Cellipse cx='48' cy='32' rx='13' ry='5.5' stroke='%233a9bd5' stroke-width='1' fill='none' opacity='.55'/%3E%3Cline x1='48' y1='19' x2='48' y2='45' stroke='%233a9bd5' stroke-width='1' opacity='.55'/%3E%3Cpath d='M44 39 L44 30 Q44 26 48 26 Q52 26 52 30 L52 39 Z' fill='%233a9bd5' opacity='.85'/%3E%3Cpath d='M45.5 39 L45.5 31 Q45.5 27.5 48 27.5 Q50.5 27.5 50.5 31 L50.5 39 Z' fill='%23112244'/%3E%3C/svg%3E" alt="" style="width:36px;height:36px;border-radius:8px"
-            onerror="this.style.display='none'">
+          
           <div class="auth-brand">TechMedixLink</div>
         </div>
         <div style="font-size:10px;color:var(--tx-3);letter-spacing:0.14em;text-transform:uppercase;margin-top:4px">Medical Equipment · Tanzania</div>
@@ -436,8 +435,9 @@ document.addEventListener('DOMContentLoaded', () => {
     <button class="sb-close" @click="sidebarOpen=false"><i class="fas fa-times"></i></button>
     <div class="sb-top">
       <div class="logo" @click="goTab('home')" style="cursor:pointer">
-          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230a1f3c'/%3E%3Cpath d='M36 0 L64 0 L64 64 L24 64 L24 0 Z' fill='%23112244'/%3E%3Cline x1='32' y1='6' x2='32' y2='58' stroke='rgba(255,255,255,0.1)' stroke-width='1'/%3E%3Cpolyline points='4,32 10,32 14,22 20,42 24,28 28,32 32,32' stroke='%234dc8d0' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Ccircle cx='48' cy='32' r='13' stroke='%233a9bd5' stroke-width='2' fill='none'/%3E%3Cellipse cx='48' cy='32' rx='13' ry='5.5' stroke='%233a9bd5' stroke-width='1' fill='none' opacity='.55'/%3E%3Cline x1='48' y1='19' x2='48' y2='45' stroke='%233a9bd5' stroke-width='1' opacity='.55'/%3E%3Cpath d='M44 39 L44 30 Q44 26 48 26 Q52 26 52 30 L52 39 Z' fill='%233a9bd5' opacity='.85'/%3E%3Cpath d='M45.5 39 L45.5 31 Q45.5 27.5 48 27.5 Q50.5 27.5 50.5 31 L50.5 39 Z' fill='%23112244'/%3E%3C/svg%3E" alt="TechMedixLink" class="logo-favicon-img"
-            onerror="this.style.display='none'">
+          <div class="logo-mark">
+            <i :class="platform==='techmedix'?'fas fa-heart-pulse':'fas fa-globe'"></i>
+          </div>
           <div>
             <div class="logo-name">Tech<em>Medix</em>Link</div>
             <div class="logo-sub">{{ platform==='techmedix'?'Medical Platform':'Global Sourcing' }}</div>
@@ -3880,7 +3880,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
 <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script type="module" src="js/main.js?v22"></script>
+<script type="module" src="js/main.js?v23"></script>
 <script>
 // Register service worker for cache control
 if ('serviceWorker' in navigator) {
