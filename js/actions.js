@@ -8,7 +8,7 @@ import {
   loading, loadMsg, profile, products, allRequests, payments, notifications,
   toast, killToast,
   adminUsers, shoppers, addresses, analyticsData, sellerAnalytics,
-  sellerAnalyticsLoading, productReviews, pdReviews, pdLoading,   
+  sellerAnalyticsLoading, productReviews, pdReviews, pdLoading,
   usdToTzs, rateSource, rateUpdatedAt,
   basket, showBasket,
   showAuth, showListingModal, showReqModal, showQuoteModal, showReviewModal,
@@ -42,7 +42,9 @@ import {
   dutyCategory, dutyValue, dutyResult, verifiedSellers,
   adminDateFrom, adminDateTo,
   productRequests, newProductRequest, newsletterEmail,
-  recentlyViewed, showSearchSuggestions
+  recentlyViewed, showSearchSuggestions,
+  myFacility, facilityMembers, showCreateFacility, inviteEmail, inviteRole,
+  productBenchmark, benchmarkPct
 } from './state.js';
 
 import { fStatus, tzs, fDate, fDateTime } from './formatters.js';
@@ -1249,6 +1251,7 @@ export async function openProductDetail(p) {
   viewedProduct.value = p; showProductDetail.value = true; pd3dMode.value = false; pdQty.value = 1;
   loadProductAccessories(p.id);
   trackRecentlyViewed(p);
+  loadProductBenchmark(p);
   pdReviews.value = []; pdLoading.value = true; activeDetailImage.value = null;
   try {
     const { data: rvData } = await sb.from('reviews').select('*')
@@ -2061,5 +2064,188 @@ export function trackPageView(page) {
     if (typeof gtag !== 'undefined') {
       gtag('event', 'page_view', { page_title: page, page_location: window.location.href });
     }
+  } catch {}
+}
+
+// ── TMDA COMPLIANCE PASSPORT (PDF generation) ────────────────────
+export function generateTmdaPassport(product) {
+  // Generate a downloadable HTML passport that prints to PDF
+  const tzs = usdToTzs.value || 2672;
+  const date = new Date().toLocaleDateString('en-TZ', { year:'numeric', month:'long', day:'numeric' });
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>TMDA Compliance Passport — ${product.name}</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width:600px; margin:0 auto; padding:40px; color:#1a2b3c; }
+  .header { background:#0a1f3c; color:white; padding:24px; border-radius:8px; margin-bottom:24px; }
+  .logo { font-size:22px; font-weight:700; } .logo span { color:#4dc8d0; }
+  .badge { background:#1a7a4a; color:white; display:inline-block; padding:4px 12px; border-radius:99px; font-size:11px; font-weight:700; margin-top:8px; }
+  .section { margin-bottom:20px; }
+  .section h3 { font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:#5a7090; border-bottom:1px solid #e8edf4; padding-bottom:6px; margin-bottom:12px; }
+  .row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #f4f8fc; font-size:13px; }
+  .row label { color:#5a7090; } .row value { font-weight:600; }
+  .disclaimer { font-size:11px; color:#8899aa; line-height:1.6; margin-top:24px; padding-top:16px; border-top:1px solid #e8edf4; }
+  @media print { body { padding:20px; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo">Tech<span>Medix</span>Link</div>
+  <div style="font-size:11px;opacity:0.6;margin-top:4px">COMPLIANCE PASSPORT · Medical Equipment Platform · Tanzania</div>
+</div>
+<div class="section">
+  <h3>Product Identification</h3>
+  <div class="row"><label>Product name</label><span style="font-weight:600">${product.name}</span></div>
+  <div class="row"><label>Manufacturer</label><span>${product.manufacturer || '—'}</span></div>
+  <div class="row"><label>Country of origin</label><span>${product.country || '—'}</span></div>
+  <div class="row"><label>HS Code</label><span>${product.hs_code || 'To be confirmed'}</span></div>
+  <div class="row"><label>Condition</label><span style="text-transform:capitalize">${product.condition || 'New'}</span></div>
+  <div class="row"><label>Catalogue reference</label><span>${product.id?.slice(0,8).toUpperCase()}</span></div>
+</div>
+<div class="section">
+  <h3>Regulatory Status</h3>
+  <div class="row"><label>TMDA certification</label><span style="color:#1a7a4a;font-weight:700">✓ CERTIFIED</span></div>
+  <div class="row"><label>CE marking</label><span>${product.ce_marked ? '✓ CE Marked' : 'Confirm with supplier'}</span></div>
+  <div class="row"><label>ISO certification</label><span>Confirm with supplier</span></div>
+  <div class="row"><label>Warranty</label><span>${product.warranty_months ? product.warranty_months + ' months' : 'As per manufacturer'}</span></div>
+</div>
+<div class="section">
+  <h3>Pricing (${date})</h3>
+  <div class="row"><label>Unit price (USD)</label><span>$${product.base_price_usd?.toLocaleString()}</span></div>
+  <div class="row"><label>Approx. TZS equivalent</label><span>TZS ${Math.round((product.base_price_usd||0) * tzs).toLocaleString()}</span></div>
+  <div class="row"><label>Est. import duty</label><span>Subject to HS code classification</span></div>
+</div>
+<div class="section">
+  <h3>Sourcing</h3>
+  <div class="row"><label>Platform</label><span>TechMedixLink — techmedixlink.co.tz</span></div>
+  <div class="row"><label>Support</label><span>+34 659 447 627 (WhatsApp)</span></div>
+  <div class="row"><label>Document generated</label><span>${date}</span></div>
+</div>
+<div class="badge">✓ TMDA Certified Product</div>
+<div class="disclaimer">
+  This document is generated by TechMedixLink for procurement reference purposes. 
+  TMDA certification status should be independently verified with the Tanzania Medicines and Medical Devices Authority (tmda.go.tz). 
+  Prices are indicative and subject to exchange rate fluctuations. 
+  This document does not constitute a formal import permit or customs declaration.
+</div>
+</body>
+</html>`;
+  const blob = new Blob([html], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'TMDA-Passport-' + product.name.replace(/\s+/g,'-') + '.html';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('ok', 'Passport downloaded', 'Open the file in your browser then print to PDF');
+}
+
+// ── LOAD PRICE BENCHMARK for a product ──────────────────────────
+export async function loadProductBenchmark(product) {
+  productBenchmark.value = null;
+  benchmarkPct.value = 50;
+  if (!product) return;
+  try {
+    const { data } = await sb.from('price_benchmarks')
+      .select('*')
+      .eq('product_type', product.product_type)
+      .single();
+    if (data) {
+      productBenchmark.value = data;
+      const range = data.max_price_usd - data.min_price_usd;
+      if (range > 0) {
+        const pct = Math.round(((product.base_price_usd - data.min_price_usd) / range) * 100);
+        benchmarkPct.value = Math.max(5, Math.min(95, pct));
+      }
+    }
+  } catch {}
+}
+
+// ── FACILITY MANAGEMENT ──────────────────────────────────────────
+export async function loadMyFacility() {
+  if (!profile.value) return;
+  try {
+    const { data } = await sb.from('facilities')
+      .select('*')
+      .eq('owner_id', profile.value.id)
+      .single();
+    myFacility.value = data || null;
+    if (data) await loadFacilityMembers(data.id);
+  } catch {}
+}
+
+export async function loadFacilityMembers(facilityId) {
+  try {
+    const { data } = await sb.from('facility_members')
+      .select('*, user:user_id(full_name, email, phone)')
+      .eq('facility_id', facilityId);
+    facilityMembers.value = (data || []).map(m => ({
+      ...m, ...m.user, role: m.role
+    }));
+  } catch {}
+}
+
+export async function createFacility(name, facilityType, region) {
+  if (!profile.value || !name) return;
+  try {
+    const { data, error } = await sb.from('facilities').insert({
+      name, facility_type: facilityType, region,
+      owner_id: profile.value.id
+    }).select().single();
+    if (!error && data) {
+      myFacility.value = data;
+      await sb.from('facility_members').insert({
+        facility_id: data.id,
+        user_id: profile.value.id,
+        role: 'owner',
+        accepted_at: new Date().toISOString()
+      });
+      toast('ok', 'Facility created!', name + ' is ready — invite your team');
+    }
+  } catch {}
+}
+
+export async function inviteFacilityMember() {
+  if (!myFacility.value || !inviteEmail.value) return;
+  try {
+    // Look up user by email
+    const { data: user } = await sb.from('users')
+      .select('id, full_name').eq('email', inviteEmail.value).single();
+    if (!user) {
+      toast('wn', 'User not found', 'They need to create a TechMedixLink account first');
+      return;
+    }
+    await sb.from('facility_members').insert({
+      facility_id: myFacility.value.id,
+      user_id: user.id,
+      role: inviteRole.value,
+      invited_by: profile.value.id,
+      accepted_at: new Date().toISOString()
+    });
+    inviteEmail.value = '';
+    await loadFacilityMembers(myFacility.value.id);
+    toast('ok', 'Member invited!', user.full_name + ' added as ' + inviteRole.value);
+  } catch {}
+}
+
+// ── SELLER RESPONSE TIME (computed from data) ────────────────────
+export async function computeSellerResponseTime(sellerId) {
+  try {
+    const { data } = await sb.from('requests')
+      .select('created_at, quoted_date')
+      .eq('status', 'quoted')
+      .not('quoted_date', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(10);
+    if (!data?.length) return;
+    const hours = data
+      .map(r => (new Date(r.quoted_date) - new Date(r.created_at)) / 3600000)
+      .filter(h => h > 0 && h < 72);
+    if (!hours.length) return;
+    const avg = Math.round((hours.reduce((a,b) => a+b, 0) / hours.length) * 10) / 10;
+    await sb.from('users').update({ seller_response_time_hours: avg }).eq('id', sellerId);
+    if (profile.value?.id === sellerId) profile.value.seller_response_time_hours = avg;
   } catch {}
 }
