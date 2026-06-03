@@ -31,7 +31,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="TechMedixLink · Medical Equipment Platform">
 <meta name="twitter:description" content="Tanzania's premier medical equipment sourcing and procurement marketplace.">
-<link rel="stylesheet" href="app.css?v26">
+<link rel="stylesheet" href="app.css?v27">
 <style>
 @keyframes skeleton-pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .basket-pulse .fa-basket-shopping{animation:basket-bounce 0.4s ease}
@@ -579,7 +579,22 @@ document.addEventListener('DOMContentLoaded', () => {
         <div v-else class="plat-tag"><i :class="platform==='techmedix'?'fas fa-heart-pulse':'fas fa-globe'"></i>{{  platform==='techmedix'?'TechMedixLink':'Global Door'  }}</div>
       </div>
       <div class="tb-r" style="flex-shrink:0">
-        <div class="srch-w"><i class="fas fa-search"></i><input type="text" v-model="globalSearch" placeholder="Search products…" @keydown.enter="performSearch"></div>
+        <div class="srch-w" style="position:relative"><i class="fas fa-search"></i>
+          <input type="text" v-model="globalSearch" placeholder="Search products…"
+            @keydown.enter="performSearch"
+            @input="showSearchSuggestions=globalSearch.length>1"
+            @focus="showSearchSuggestions=globalSearch.length>1"
+            @blur="setTimeout(()=>{showSearchSuggestions=false},200)"
+            autocomplete="off">
+          <div v-if="showSearchSuggestions&&searchSuggestions.length" class="search-autocomplete">
+            <div v-for="s in searchSuggestions" :key="s.id"
+              @mousedown.prevent="openProductDetail(s);globalSearch='';showSearchSuggestions=false"
+              class="search-ac-item">
+              <div class="search-ac-img"><img v-if="s.image_url" :src="s.image_url" loading="lazy"><i v-else class="fas fa-box" style="font-size:10px;color:var(--tx-4)"></i></div>
+              <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:var(--tx-1)">{{ s.name }}</div><div style="font-size:10px;color:var(--tx-3)">${{ fNum(s.base_price_usd) }} · {{ s.manufacturer }}</div></div>
+            </div>
+          </div>
+        </div>
         <div v-if="profile && basketCount>0" class="tb-ico" @click="showBasket=true" title="Procurement basket" style="position:relative">
           <i class="fas fa-basket-shopping"></i>
           <div class="ndot" style="background:var(--siemens)">{{  basketCount  }}</div>
@@ -1074,6 +1089,39 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
 
           <!-- ── FINAL CTA ── -->
+          <!-- ── PRODUCT REQUEST VOTING ── -->
+          <div class="lp-vote-section">
+            <div class="lp-section-ttl" style="margin-bottom:var(--s3)">Don't see what you need? Vote for it</div>
+            <div style="display:flex;gap:var(--s3);flex-wrap:wrap;margin-bottom:var(--s3)">
+              <div v-for="pr in productRequests" :key="pr.id" class="lp-vote-card" @click="voteProductRequest(pr.id)">
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:var(--tsm);font-weight:700;color:var(--tx-1)">{{ pr.product_name }}</div>
+                  <div style="font-size:10px;color:var(--tx-3)">{{ pr.description }}</div>
+                </div>
+                <div class="lp-vote-count"><i class="fas fa-arrow-up" style="font-size:9px"></i> {{ pr.votes }}</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:var(--s2);align-items:center;flex-wrap:wrap">
+              <input type="text" v-model="newProductRequest" class="inp" style="flex:1;max-width:320px" placeholder="Suggest a product you need…">
+              <button @click="submitProductRequest" class="btn btn-s btn-sm" :disabled="!newProductRequest"><i class="fas fa-plus"></i>Submit request</button>
+            </div>
+          </div>
+
+          <!-- ── NEWSLETTER ── -->
+          <div class="lp-newsletter">
+            <div class="lp-newsletter-inner">
+              <div>
+                <div style="font-family:var(--fd);font-size:18px;color:white;margin-bottom:4px">Stay ahead in medical procurement</div>
+                <div style="font-size:12px;color:rgba(255,255,255,0.6)">Weekly deals, new arrivals, and TMDA updates — no spam</div>
+              </div>
+              <div style="display:flex;gap:var(--s2);flex:1;max-width:400px;min-width:0">
+                <input type="email" v-model="newsletterEmail" class="inp lp-newsletter-inp" placeholder="your@email.com">
+                <button @click="subscribeNewsletter" class="btn btn-p" :disabled="!newsletterEmail"><i class="fas fa-paper-plane"></i>Subscribe</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── FINAL CTA ── -->
           <div class="lp-final-cta">
             <div class="lp-final-cta-ttl">Ready to source medical equipment?</div>
             <div class="lp-final-cta-sub">Join hospitals, clinics, and procurement officers across Tanzania.</div>
@@ -1179,7 +1227,19 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </template>
         <template v-if="!profile">
-          <div class="kpi-grid fu fu-1">
+          <!-- Recently viewed products -->
+        <div v-if="recentlyViewed&&recentlyViewed.length" class="fu fu-1" style="margin-bottom:var(--s4)">
+          <div style="font-size:11px;font-weight:700;color:var(--tx-4);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:var(--s2)">Recently viewed</div>
+          <div style="display:flex;gap:var(--s2);overflow-x:auto;scrollbar-width:none;padding-bottom:4px">
+            <div v-for="p in recentlyViewed" :key="p.id" class="rv-card" @click="openProductDetail(p)">
+              <div class="rv-img"><img v-if="p.image_url" :src="p.image_url" loading="lazy"><i v-else class="fas fa-box" style="font-size:12px;color:var(--tx-4)"></i></div>
+              <div class="rv-name">{{ p.name }}</div>
+              <div class="rv-price">${{ fNum(p.base_price_usd) }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="kpi-grid fu fu-1">
             <div class="kpi"><div class="kpi-ico"><i class="fas fa-boxes-stacked"></i></div><div class="kpi-lbl">Products</div><div class="kpi-val">{{  products.length  }}</div><div class="kpi-sub up">Available now</div></div>
             <div class="kpi"><div class="kpi-ico"><i class="fas fa-tag"></i></div><div class="kpi-lbl">Categories</div><div class="kpi-val">{{  uniqueCats  }}</div><div class="kpi-sub">To browse</div></div>
             <div class="kpi"><div class="kpi-ico"><i class="fas fa-coins"></i></div><div class="kpi-lbl">USD/TZS</div><div class="kpi-val sm ac">{{  fNum(usdToTzs)  }}</div><div class="kpi-sub" :class="rateSource==='live'?'up':''">{{  rateSource==='live'?'Live BOT':'Fallback'  }}</div></div>
@@ -1297,7 +1357,13 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="pc-name" @click="openProductDetail(p)" style="cursor:pointer">{{  p.name  }}</div>
               <div class="pc-seller"><i class="fas fa-store" style="font-size:8px"></i><span class="pc-seller-link" @click.stop="manufFilter=p.seller_name||'TechMedixLink';goTab('browse')" :title="'Browse all from '+( p.seller_name||'TechMedixLink')">{{  p.seller_name||'TechMedixLink'  }}</span><span v-if="p.seller_verified || adminUsers.find(u=>u.id===p.user_id)?.company_name?.startsWith('[VERIFIED]')" class="vbadge"><i class="fas fa-check-circle"></i></span></div>
               <div class="pc-loc"><i class="fas fa-location-dot" style="font-size:8px"></i>{{  p.country||'Tanzania'  }}</div>
-              <div v-if="p.delivery_days_min" style="font-size:9px;color:var(--ok);font-weight:600;display:flex;align-items:center;gap:4px;margin-bottom:4px"><i class="fas fa-truck" style="font-size:8px"></i>Est. {{ p.delivery_days_min }}–{{ p.delivery_days_max }} days</div>
+              <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;flex-wrap:wrap">
+                <div v-if="p.stock_quantity>0" class="lead-badge lead-stock"><i class="fas fa-circle" style="font-size:6px"></i>In stock</div>
+                <div v-else-if="p.delivery_days_min<=7" class="lead-badge lead-fast"><i class="fas fa-bolt" style="font-size:8px"></i>{{ p.delivery_days_min }}–{{ p.delivery_days_max }}d</div>
+                <div v-else class="lead-badge lead-normal"><i class="fas fa-truck" style="font-size:8px"></i>{{ p.delivery_days_min }}–{{ p.delivery_days_max }}d</div>
+                <div v-if="p.condition&&p.condition!=='new'" class="lead-badge lead-refurb"><i class="fas fa-recycle" style="font-size:8px"></i>{{ p.condition }}</div>
+                <div v-if="p.moq>1" class="lead-badge lead-moq">Min {{ p.moq }}</div>
+              </div>
               <div class="pc-stars">
                 <i v-for="s in 5" :key="s" class="pc-star fas fa-star" :class="{on:s<=(p.avg_rating||0)}"></i>
                 <span class="pc-rating-count">({{  p.review_count||0  }})</span>
@@ -1309,7 +1375,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span v-if="p.requires_training" class="badge b-wn" style="font-size:9px">Training</span>
               </div>
               <div class="pc-pr-row">
-                <div><div class="pc-price">${{  fNum(p.base_price_usd)  }}</div><div class="pc-price-sub">≈ {{  tzs(p.base_price_usd * usdToTzs)  }}</div></div>
+                <div>
+                <div v-if="p.units_sold>0" style="font-size:9px;color:var(--ok);font-weight:600;margin-bottom:2px"><i class="fas fa-fire" style="font-size:8px"></i> {{ p.units_sold }} sold</div>
+                <div class="pc-price">${{  fNum(p.base_price_usd)  }}</div><div class="pc-price-sub">≈ {{  tzs(p.base_price_usd * usdToTzs)  }}</div></div>
                 <div><span :class="['pc-stock',stockClass(p.stock_quantity)]">{{  stockLabel(p.stock_quantity)  }}</span></div>
               </div>
               <div class="pc-actions">
@@ -1415,6 +1483,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <button v-else @click="openDetailModal(r)" class="btn btn-g btn-sm" style="flex:1;justify-content:center"><i class="fas fa-eye"></i>View Details</button>
             <!-- SECONDARY actions -->
             <button @click="openDetailModal(r)" class="btn btn-g btn-sm btn-sq" title="Details"><i class="fas fa-eye" style="font-size:11px"></i></button>
+            <button v-if="['delivered','completed'].includes(r.status)" @click="raiseDispute(r)" class="btn btn-g btn-sm btn-sq" title="Raise a dispute" style="color:var(--warn)"><i class="fas fa-flag" style="font-size:11px"></i></button>
             <button @click="doTrack(r.request_number)" class="btn btn-g btn-sm btn-sq" title="Track order"><i class="fas fa-location-dot" style="font-size:11px"></i></button>
             <button @click.stop="openMessages(r)" class="btn btn-g btn-sm btn-sq" style="position:relative" title="Messages">
               <i class="fas fa-message" style="font-size:11px"></i>
@@ -2484,6 +2553,25 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
 
             <!-- NOTES -->
+            <!-- Budget code + insurance -->
+            <div class="fr2">
+              <div class="fg"><label class="lbl">Budget / Vote code <span style="color:var(--tx-4);font-weight:400">(optional)</span></label>
+                <input type="text" v-model="rF.budget_code" class="inp" placeholder="e.g. 4221-MED-2026">
+                <div class="hint">Appears on your PPRA invoice</div>
+              </div>
+              <div class="fg"><label class="lbl">Approval email <span style="color:var(--tx-4);font-weight:400">(optional)</span></label>
+                <input type="email" v-model="rF.approval_email" class="inp" placeholder="committee@hospital.go.tz">
+                <div class="hint">Send quote summary to a second approver</div>
+              </div>
+            </div>
+            <div class="fg">
+              <label class="chk"><input type="checkbox" v-model="rF.insurance_added" style="accent-color:var(--philips)">
+                <span class="chk-lbl" style="font-size:var(--txs)">
+                  Add cargo insurance <strong style="color:var(--philips)">+2% of order value</strong>
+                  <span style="color:var(--tx-4)"> — recommended for high-value equipment</span>
+                </span>
+              </label>
+            </div>
             <div class="fg">
               <label class="lbl">Additional notes <span style="color:var(--tx-4);font-weight:400">(optional)</span></label>
               <textarea v-model="rF.notes" class="tex" style="min-height:70px" maxlength="1000"
@@ -3537,6 +3625,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <!-- Description -->
           <div class="pd-section-ttl">About this product</div>
           <div v-if="viewedProduct.description" class="pd-desc">{{  viewedProduct.description  }}</div><div v-else class="pd-desc" style="color:var(--tx-4);font-style:italic">No description provided for this product.</div>
+            <div v-if="viewedProduct.spec_sheet_url||viewedProduct.video_url" style="display:flex;gap:var(--s2);margin-top:var(--s3);flex-wrap:wrap">
+              <a v-if="viewedProduct.spec_sheet_url" :href="viewedProduct.spec_sheet_url" target="_blank" class="btn btn-g btn-sm" style="text-decoration:none"><i class="fas fa-file-pdf" style="color:#c0392b"></i>Spec Sheet</a>
+              <a v-if="viewedProduct.video_url" :href="viewedProduct.video_url" target="_blank" class="btn btn-g btn-sm" style="text-decoration:none"><i class="fab fa-youtube" style="color:#c0392b"></i>Video</a>
+            </div>
 
           <!-- Specs grid -->
           <div class="pd-section-ttl">Specifications</div>
@@ -3965,7 +4057,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
 <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script type="module" src="js/main.js?v26"></script>
+<script type="module" src="js/main.js?v27"></script>
 <script>
 // Register service worker for cache control
 if ('serviceWorker' in navigator) {
