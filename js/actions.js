@@ -38,7 +38,8 @@ import {
   activeGroupBuys,
   reqTemplates,
   productAccessories,
-  priceAlerts
+  priceAlerts,
+  dutyCategory, dutyValue, dutyResult, verifiedSellers
 } from './state.js';
 
 import { fStatus, tzs, fDate, fDateTime } from './formatters.js';
@@ -183,8 +184,8 @@ export async function loadPayments() {
   try {
     const isAdmin = profile.value.user_role === 'admin';
     const query = isAdmin
-      ? sb.from('payments').select('*').order('payment_date', { ascending: false }).limit(100)
-      : sb.from('payments').select('*').eq('user_id', profile.value.id).order('payment_date', { ascending: false });
+      ? sb.from('payments').select('*').order('created_at', { ascending: false }).limit(100)
+      : sb.from('payments').select('*').eq('user_id', profile.value.id).order('created_at', { ascending: false });
     const { data, error } = await query;
     if (error) throw error;
     payments.value = data || [];
@@ -939,6 +940,8 @@ export async function saveReq(selectedProduct, reqCostEstimate) {
   lastReqNumber.value = request_number;
   showReqModal.value = false;
   showReqSuccess.value = true;
+  // Send confirmation email
+  sendOrderConfirmationEmail({ request_number, items: [], platform_type: rF.platform_type });
   // Auto-quote for catalogue items
   if (isCatalog && selectedProd && request_id) {
     setTimeout(() => autoQuoteRequest(request_id, selectedProd, rF.quantity), 500);
@@ -1867,4 +1870,87 @@ export async function autoQuoteRequest(reqId, product, qty) {
 // ── Open external URL ─────────────────────────────────────────
 export function openExternalUrl(url) {
   if (url) window.open(url, '_blank', 'noopener');
+}
+
+// ── REORDER REQUEST ─────────────────────────────────────────────
+export function reorderRequest(r) {
+  const items = r.items || [];
+  if (items.length && items[0].product_id) {
+    rF.product_id   = items[0].product_id;
+    rF.source_type  = 'catalog';
+    rF.quantity     = items[0].quantity || 1;
+    rF.notes        = 'Reorder of ' + (r.request_number || 'previous order');
+    rF.platform_type = r.platform_type || 'techmedix';
+  } else {
+    rF.source_type  = 'manual';
+    rF.custom_name  = r.items?.[0]?.product_name || '';
+    rF.quantity     = r.items?.[0]?.quantity || 1;
+    rF.notes        = 'Reorder of ' + (r.request_number || 'previous order');
+  }
+  showReqModal.value = true;
+  toast('ok', 'Reorder ready', 'Your previous order details have been pre-filled');
+}
+
+// ── PAUSE LISTING ────────────────────────────────────────────────
+export async function pauseListing(p) {
+  const { error } = await sb.from('products')
+    .update({ is_active: false, is_paused: true, updated_at: new Date().toISOString() })
+    .eq('id', p.id);
+  if (!error) {
+    p.is_active = false;
+    p.is_paused = true;
+    toast('ok', 'Listing paused', 'Product is hidden but will resume when you reactivate');
+    await loadProds();
+  }
+}
+
+// ── IMPORT DUTY CALCULATOR ──────────────────────────────────────
+export function calcDuty() {
+  if (!dutyValue.value || !dutyCategory.value) {
+    toast('wn', 'Fill in both fields', 'Select a category and enter a product value');
+    return;
+  }
+  const rates = {
+    medical_device: 5, diagnostic: 0, surgical: 5,
+    laboratory: 10, ppe: 2.5, electronics: 18
+  };
+  const rate = rates[dutyCategory.value] || 5;
+  const tzs = Math.round(dutyValue.value * (usdToTzs.value || 2672));
+  const duty = Math.round(tzs * rate / 100);
+  const vat  = Math.round((tzs + duty) * 0.18);
+  const service = Math.round(tzs * 0.10);
+  const total = tzs + duty + vat + service;
+  dutyResult.value = { rate, duty, vat, service, total };
+}
+
+// ── LOAD VERIFIED SELLERS ────────────────────────────────────────
+export async function loadVerifiedSellers() {
+  try {
+    const { data } = await sb.from('users')
+      .select('id, full_name, company_name, user_type, user_role')
+      .in('user_role', ['seller','both'])
+      .ilike('company_name', '[VERIFIED]%')
+      .limit(8);
+    verifiedSellers.value = (data || []).map(u => ({
+      ...u,
+      company_name: (u.company_name || '').replace('[VERIFIED]','').trim()
+    }));
+  } catch {}
+}
+
+// ── ORDER CONFIRMATION EMAIL (via Supabase Edge Function) ────────
+export async function sendOrderConfirmationEmail(req) {
+  try {
+    const user = profile.value;
+    if (!user?.email) return;
+    await sb.functions.invoke('send-order-confirmation', {
+      body: {
+        to: user.email,
+        name: user.full_name,
+        request_number: req.request_number,
+        items: req.items || [],
+        platform: req.platform_type,
+      }
+    });
+  } catch {}
 }
