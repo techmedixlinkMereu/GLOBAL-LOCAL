@@ -3173,3 +3173,163 @@ body.modal-open { overflow: hidden; }
   .lp-newsletter-inner { flex-direction: column; align-items: stretch; }
   .lp-vote-card { flex: 1 1 100%; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   6 ADVANCED FEATURES — CSS
+═══════════════════════════════════════════════════════════════════ */
+
+/* ── Seller response time badge ── */
+.response-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--philips);
+  background: var(--philips-l);
+  padding: 2px 6px;
+  border-radius: 99px;
+  border: 1px solid rgba(0,102,161,0.2);
+}
+
+/* ── Price benchmark bar ── */
+.pd-benchmark {
+  margin-top: var(--s3);
+  padding: var(--s3);
+  background: var(--bg-1);
+  border: 1px solid var(--ln-1);
+  border-radius: var(--r2);
+}
+.pd-bench-bar {
+  position: absolute;
+  left: 10%; right: 10%;
+  top: 0; height: 100%;
+  background: linear-gradient(90deg, rgba(0,102,161,0.2) 0%, rgba(0,102,161,0.5) 50%, rgba(192,57,43,0.2) 100%);
+  border-radius: 99px;
+}
+.pd-bench-dot {
+  position: absolute;
+  top: 50%; transform: translate(-50%, -50%);
+  width: 14px; height: 14px;
+  background: var(--philips);
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  transition: left 0.4s ease;
+}
+.bench-label { font-weight: 700; }
+.bench-low  { color: var(--ok); }
+.bench-mid  { color: var(--philips); }
+.bench-high { color: var(--warn); }
+
+/* ── Delivery map ── */
+.delivery-map-card {
+  background: var(--bg-0);
+  border: 1px solid var(--ln-1);
+  border-radius: var(--r3);
+  padding: var(--s4);
+  margin-bottom: var(--s4);
+}
+.delivery-map-hd {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  margin-bottom: var(--s4);
+}
+.delivery-map-container {
+  background: linear-gradient(135deg, var(--bg-1) 0%, var(--bg-2) 100%);
+  border-radius: var(--r2);
+  padding: var(--s4);
+  border: 1px solid var(--ln-1);
+}
+.delivery-map-route {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  position: relative;
+}
+.delivery-map-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  z-index: 1;
+}
+.delivery-map-node i {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--bg-0);
+  border: 2px solid var(--philips);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--philips);
+  font-size: 16px;
+  box-shadow: 0 0 0 4px var(--philips-l);
+}
+.delivery-map-origin { margin-right: var(--s2); }
+.delivery-map-dest   { margin-left: var(--s2); }
+.delivery-map-line {
+  flex: 1;
+  height: 4px;
+  background: var(--bg-3);
+  border-radius: 2px;
+  position: relative;
+  overflow: visible;
+}
+.delivery-map-progress {
+  height: 100%;
+  background: linear-gradient(90deg, var(--philips), #4dc8d0);
+  border-radius: 2px;
+  transition: width 1s ease;
+}
+.delivery-map-plane {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  transition: left 1s ease;
+  z-index: 2;
+}
+
+/* ── Facility account ── */
+.facility-av {
+  width: 52px; height: 52px;
+  border-radius: var(--r2);
+  background: var(--philips);
+  color: white;
+  font-family: var(--fd);
+  font-size: 22px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.facility-member-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s2) 0;
+  border-bottom: 1px solid var(--ln-0);
+}
+.facility-member-row:last-child { border-bottom: none; }
+.facility-member-av {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--philips-l);
+  color: var(--philips);
+  font-weight: 700;
+  font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Open brief 4-card type strip ── */
+.req-type-strip { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 600px) {
+  .req-type-strip { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── Delivery map responsive ── */
+@media (max-width: 480px) {
+  .delivery-map-node { display: none; }
+  .delivery-map-node.delivery-map-origin,
+  .delivery-map-node.delivery-map-dest { display: flex; }
+}
