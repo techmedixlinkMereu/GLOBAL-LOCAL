@@ -1,5 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <circle cx="50" cy="50" r="50" fill="#0066a1"/>
-  <path d="M50 20 L50 80 M30 40 Q50 25 70 40" stroke="white" stroke-width="6" stroke-linecap="round" fill="none"/>
-  <path d="M35 55 Q50 70 65 55" stroke="white" stroke-width="6" stroke-linecap="round" fill="none"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Background -->
+  <rect width="64" height="64" rx="12" fill="#0a1f3c"/>
+  <!-- Heart pulse / medical cross hybrid -->
+  <path d="M12 32 L20 32 L25 22 L32 42 L38 28 L42 32 L52 32" 
+        stroke="#4dc8d0" stroke-width="4" stroke-linecap="round" 
+        stroke-linejoin="round" fill="none"/>
+  <!-- T letter hint in bottom right -->
+  <text x="44" y="58" font-family="Georgia,serif" font-size="13" 
+        font-weight="700" fill="#0066a1" opacity="0.8">M</text>
 </svg>
