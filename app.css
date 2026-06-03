@@ -2930,3 +2930,93 @@ body.modal-open { overflow: hidden; }
   .lp-ad-pkg { background: var(--bg-0); }
   .lp-ad-pkg-popular { background: rgba(0,102,161,0.15); }
 }
+
+/* ── Import Duty Calculator ── */
+.lp-duty-calc {
+  background: var(--bg-0);
+  border: 1px solid var(--ln-1);
+  border-radius: var(--r4);
+  padding: var(--s5);
+  margin: var(--s5) 0;
+}
+.lp-duty-hd {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  margin-bottom: var(--s4);
+}
+.lp-duty-icon {
+  width: 44px; height: 44px;
+  border-radius: var(--r2);
+  background: var(--philips-l);
+  color: var(--philips);
+  font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.lp-duty-form {
+  display: flex;
+  gap: var(--s3);
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+.lp-duty-result {
+  margin-top: var(--s4);
+  background: var(--bg-1);
+  border: 1px solid var(--ln-1);
+  border-radius: var(--r2);
+  padding: var(--s3) var(--s4);
+}
+.lp-duty-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--tx-3);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--ln-0);
+}
+.lp-duty-total {
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--tx-1);
+  font-family: var(--fm);
+  border-bottom: none;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 2px solid var(--ln-2);
+}
+
+/* ── Verified Sellers ── */
+.lp-sellers-section { margin: var(--s4) 0; }
+.lp-sellers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--s3);
+  margin-top: var(--s3);
+}
+.lp-seller-card {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3) var(--s4);
+  background: var(--bg-0);
+  border: 1px solid var(--ln-1);
+  border-radius: var(--r2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.lp-seller-card:hover { border-color: var(--philips); box-shadow: var(--sh2); }
+.lp-seller-av {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--philips-l);
+  color: var(--philips);
+  font-weight: 700;
+  font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── btn-wn style ── */
+.btn-wn { background: var(--warn-bg); color: var(--warn); border-color: var(--warn-bd); }
+.btn-wn:hover { background: var(--warn); color: white; }
