@@ -368,6 +368,7 @@ const app = createApp({
 
       // Load platform features (ads, group buys, templates)
       A.loadPlatformFeatures();
+      A.loadVerifiedSellers();
 
       // ITEM 85: Restore basket from localStorage
       try {
