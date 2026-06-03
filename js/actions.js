@@ -108,10 +108,10 @@ export async function createNotification(userId, type, title, message, requestId
 
 // ── DATA LOADERS ─────────────────────────────────────────────────
 export async function loadAll() {
-  await loadExchangeRate().catch(e =>);
-  await loadProds().catch(e =>);
-  await loadReqs().catch(e =>);
-  await loadPayments().catch(e =>);
+  await loadExchangeRate().catch(() => {});
+  await loadProds().catch(() => {});
+  await loadReqs().catch(() => {});
+  await loadPayments().catch(() => {});
 }
 
 export async function loadExchangeRate() {
