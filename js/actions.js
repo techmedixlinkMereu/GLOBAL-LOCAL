@@ -934,6 +934,10 @@ export async function saveReq(selectedProduct, reqCostEstimate) {
   lastReqNumber.value = request_number;
   showReqModal.value = false;
   showReqSuccess.value = true;
+  // Auto-quote for catalogue items
+  if (isCatalog && selectedProd && request_id) {
+    setTimeout(() => autoQuoteRequest(request_id, selectedProd, rF.quantity), 500);
+  }
   tab.value = 'my-requests';
 }
 
@@ -1233,6 +1237,7 @@ export function openReviewModal(r) {
 
 export async function openProductDetail(p) {
   viewedProduct.value = p; showProductDetail.value = true; pd3dMode.value = false; pdQty.value = 1;
+  loadProductAccessories(p.id);
   pdReviews.value = []; pdLoading.value = true; activeDetailImage.value = null;
   try {
     const { data: rvData } = await sb.from('reviews').select('*')
@@ -1724,4 +1729,139 @@ export function quickRequestWithQty(p, qty = 1) {
   rF.quantity = qty || 1;
   rF.platform_type = p.platform_type === 'both' ? 'techmedix' : (p.platform_type || 'techmedix');
   showReqModal.value = true;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NEW PLATFORM FEATURES
+// ═══════════════════════════════════════════════════════════════
+
+// ── Load ads + group buys + templates on startup ──────────────
+export async function loadPlatformFeatures() {
+  try {
+    // Top banner ad
+    const { data: ads } = await sb.from('ad_placements')
+      .select('*')
+      .eq('is_active', true)
+      .eq('placement_type', 'banner_top')
+      .lte('starts_at', new Date().toISOString())
+      .gte('ends_at', new Date().toISOString())
+      .limit(1);
+    if (ads?.length) topAd.value = ads[0];
+
+    // Active group buy pools
+    const { data: pools } = await sb.from('group_buy_pools')
+      .select('*')
+      .eq('status', 'open')
+      .gte('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(3);
+    activeGroupBuys.value = pools || [];
+
+    // Request templates
+    const { data: templates } = await sb.from('request_templates')
+      .select('*')
+      .eq('is_public', true)
+      .order('name');
+    reqTemplates.value = templates || [];
+  } catch(e) { console.error('loadPlatformFeatures:', e); }
+}
+
+// ── Load accessories for a product ───────────────────────────
+export async function loadProductAccessories(productId) {
+  try {
+    productAccessories.value = [];
+    const { data } = await sb.from('product_accessories')
+      .select('*, accessory:accessory_product_id(id,name,base_price_usd,image_url,is_active)')
+      .eq('product_id', productId)
+      .limit(3);
+    productAccessories.value = (data || [])
+      .filter(a => a.accessory?.is_active)
+      .map(a => a.accessory);
+  } catch(e) { console.error('loadAccessories:', e); }
+}
+
+// ── Apply request template ────────────────────────────────────
+export function applyReqTemplate(template) {
+  const items = template.items || [];
+  rF.source_type = 'manual';
+  rF.custom_name = template.name;
+  rF.custom_desc = items.map(i => `• ${i.name} (qty: ${i.qty})`).join('
+');
+  rF.notes = `Facility type: ${template.facility_type}. Bundle: ${template.description}`;
+  rF.quantity = items.reduce((s, i) => s + (i.qty || 1), 0);
+  toast('ok', 'Template applied', template.name + ' — review and submit');
+}
+
+// ── Track ad click ────────────────────────────────────────────
+export async function trackAdClick(ad) {
+  if (!ad?.id) return;
+  await sb.from('ad_placements')
+    .update({ clicks: (ad.clicks || 0) + 1 })
+    .eq('id', ad.id);
+  ad.clicks = (ad.clicks || 0) + 1;
+}
+
+// ── Join group buy ────────────────────────────────────────────
+export async function joinGroupBuy(pool) {
+  if (!profile.value) { showAuth.value = true; return; }
+  // Pre-fill a request for this product
+  const { data: prod } = await sb.from('products')
+    .select('*').eq('id', pool.product_id).single();
+  if (prod) {
+    rF.product_id = prod.id;
+    rF.source_type = 'catalog';
+    rF.quantity = 1;
+    rF.notes = 'GROUP BUY — Reference pool: ' + pool.id;
+    showReqModal.value = true;
+    toast('ok', 'Group buy!', 'Save ' + pool.pool_discount_pct + '% when ' + pool.target_quantity + ' facilities order together');
+  }
+}
+
+// ── Price alert ───────────────────────────────────────────────
+export async function addPriceAlert(product) {
+  if (!profile.value) { showAuth.value = true; return; }
+  const target = product.base_price_usd * 0.85; // default: alert at 15% off
+  const { error } = await sb.from('price_alerts').insert({
+    user_id: profile.value.id,
+    product_name: product.name,
+    product_type: product.product_type,
+    target_price_usd: Math.round(target * 100) / 100,
+  });
+  if (!error) toast('ok', 'Price alert set!', 'We'll notify you when ' + product.name + ' drops below $' + Math.round(target));
+}
+
+// ── Auto-quote for catalogue requests ────────────────────────
+export async function autoQuoteRequest(reqId, product, qty) {
+  try {
+    const usd = product.base_price_usd || 0;
+    const shipping = Math.round(usd * 0.08 * 100) / 100;
+    const fee = Math.round((usd + shipping) * 0.10 * 100) / 100;
+    const total = Math.round((usd + shipping + fee) * qty * 100) / 100;
+    const tzs = Math.round(total * 2672);
+
+    await sb.from('requests').update({
+      status: 'quoted',
+      item_cost: Math.round(usd * qty * 2672),
+      shipping_cost: Math.round(shipping * qty * 2672),
+      service_fee: Math.round(fee * qty * 2672),
+      total_cost: tzs,
+      balance_due: tzs,
+      quoted_date: new Date().toISOString(),
+      auto_quoted: true,
+    }).eq('id', reqId);
+
+    // Create notification
+    await sb.from('notifications').insert({
+      user_id: profile.value?.id,
+      title: 'Quote ready instantly!',
+      message: 'Your request has been auto-quoted: TZS ' + tzs.toLocaleString(),
+      notification_type: 'status_update',
+      request_id: reqId,
+    });
+  } catch(e) { console.error('autoQuote:', e); }
+}
+
+// ── Open external URL ─────────────────────────────────────────
+export function openExternalUrl(url) {
+  if (url) window.open(url, '_blank', 'noopener');
 }
