@@ -1785,8 +1785,7 @@ export function applyReqTemplate(template) {
   const items = template.items || [];
   rF.source_type = 'manual';
   rF.custom_name = template.name;
-  rF.custom_desc = items.map(i => `• ${i.name} (qty: ${i.qty})`).join('
-');
+  rF.custom_desc = items.map(i => `• ${i.name} (qty: ${i.qty})`).join('\n');
   rF.notes = `Facility type: ${template.facility_type}. Bundle: ${template.description}`;
   rF.quantity = items.reduce((s, i) => s + (i.qty || 1), 0);
   toast('ok', 'Template applied', template.name + ' — review and submit');
