@@ -146,7 +146,7 @@ export async function loadReqs(page = 0) {
     const from = page * REQ_PER_PAGE;
     const to   = from + REQ_PER_PAGE - 1;
     let q = sb.from('requests')
-      .select('*, items:request_items(*)', { count: 'exact' })
+      .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(from, to);
     if (profile.value?.user_role !== 'admin' && profile.value) {
@@ -154,7 +154,20 @@ export async function loadReqs(page = 0) {
     }
     const { data, error, count } = await q;
     if (error) throw error;
-    allRequests.value = data || [];
+    const reqs = data || [];
+    // Load request_items separately to avoid RLS embedded select issues
+    if (reqs.length) {
+      const ids = reqs.map(r => r.id);
+      const { data: items } = await sb.from('request_items')
+        .select('*')
+        .in('request_id', ids);
+      if (items?.length) {
+        const map = {};
+        items.forEach(i => { (map[i.request_id] = map[i.request_id] || []).push(i); });
+        reqs.forEach(r => { r.items = map[r.id] || []; });
+      }
+    }
+    allRequests.value = reqs;
     reqTotal.value = count || 0;
     reqPage.value  = page;
   } catch(e) { console.error('loadReqs:', e); }
