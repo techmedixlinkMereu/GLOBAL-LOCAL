@@ -1,11 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <clipPath id="cl">
+      <rect width="64" height="64" rx="12"/>
+    </clipPath>
+  </defs>
+
   <!-- Background -->
   <rect width="64" height="64" rx="12" fill="#0a1f3c"/>
-  <!-- Heart pulse / medical cross hybrid -->
-  <path d="M12 32 L20 32 L25 22 L32 42 L38 28 L42 32 L52 32" 
-        stroke="#4dc8d0" stroke-width="4" stroke-linecap="round" 
-        stroke-linejoin="round" fill="none"/>
-  <!-- T letter hint in bottom right -->
-  <text x="44" y="58" font-family="Georgia,serif" font-size="13" 
-        font-weight="700" fill="#0066a1" opacity="0.8">M</text>
+
+  <!-- Right half — GlobalDoor side -->
+  <rect x="32" y="0" width="32" height="64" fill="#112244" clip-path="url(#cl)"/>
+
+  <!-- Subtle divider -->
+  <line x1="32" y1="6" x2="32" y2="58" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+
+  <!-- LEFT: ECG pulse — TechMedixLink -->
+  <polyline points="4,32 10,32 14,22 20,42 24,28 28,32 32,32"
+    stroke="#4dc8d0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- RIGHT: Globe — GlobalDoor -->
+  <circle cx="48" cy="32" r="13" stroke="#3a9bd5" stroke-width="2" fill="none"/>
+  <ellipse cx="48" cy="32" rx="13" ry="5.5" stroke="#3a9bd5" stroke-width="1" fill="none" opacity="0.55"/>
+  <line x1="48" y1="19" x2="48" y2="45" stroke="#3a9bd5" stroke-width="1" opacity="0.55"/>
+
+  <!-- Door in globe -->
+  <path d="M44 39 L44 30 Q44 26 48 26 Q52 26 52 30 L52 39 Z" fill="#3a9bd5" opacity="0.85"/>
+  <path d="M45.5 39 L45.5 31 Q45.5 27.5 48 27.5 Q50.5 27.5 50.5 31 L50.5 39 Z" fill="#112244"/>
 </svg>
