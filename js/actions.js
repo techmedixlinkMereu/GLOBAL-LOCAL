@@ -34,6 +34,11 @@ import {
   selectedUserIds, selectedProductIds, bulkActionLoading,
   statusList, stepperStages, toasts,
   lastReqNumber, showReqSuccess, pdQty
+  topAd,
+  activeGroupBuys,
+  reqTemplates,
+  productAccessories,
+  priceAlerts
 } from './state.js';
 
 import { fStatus, tzs, fDate, fDateTime } from './formatters.js';
@@ -87,7 +92,7 @@ export async function sendWhatsApp(phone, message) {
     await sb.functions.invoke('send-whatsapp', {
       body: { phone: phone.replace(/[^0-9+]/g, ''), message }
     });
-  } catch(e) { console.warn('WhatsApp fn:', e.message); }
+  } catch(e) { }
 }
 
 export async function createNotification(userId, type, title, message, requestId = null, channel = 'in_app') {
@@ -98,15 +103,15 @@ export async function createNotification(userId, type, title, message, requestId
       title, message, is_read: false, is_delivered: false,
       sent_at: new Date().toISOString()
     });
-  } catch(e) { console.warn('Notification failed:', e); }
+  } catch(e) { }
 }
 
 // ── DATA LOADERS ─────────────────────────────────────────────────
 export async function loadAll() {
-  await loadExchangeRate().catch(e => console.warn('loadExchangeRate:', e));
-  await loadProds().catch(e => console.warn('loadProds:', e));
-  await loadReqs().catch(e => console.warn('loadReqs:', e));
-  await loadPayments().catch(e => console.warn('loadPayments:', e));
+  await loadExchangeRate().catch(e =>);
+  await loadProds().catch(e =>);
+  await loadReqs().catch(e =>);
+  await loadPayments().catch(e =>);
 }
 
 export async function loadExchangeRate() {
@@ -138,7 +143,7 @@ export async function loadProds(page = 0) {
     products.value = data || [];
     prodTotal.value = count || 0;
     prodPage.value  = page;
-  } catch(e) { console.error('loadProds:', e); }
+  } catch(e) { }
 }
 
 export async function loadReqs(page = 0) {
@@ -170,7 +175,7 @@ export async function loadReqs(page = 0) {
     allRequests.value = reqs;
     reqTotal.value = count || 0;
     reqPage.value  = page;
-  } catch(e) { console.error('loadReqs:', e); }
+  } catch(e) { }
 }
 
 export async function loadPayments() {
@@ -183,7 +188,7 @@ export async function loadPayments() {
     const { data, error } = await query;
     if (error) throw error;
     payments.value = data || [];
-  } catch(e) { console.error('loadPayments:', e); }
+  } catch(e) { }
 }
 
 export async function loadNotifications() {
@@ -268,7 +273,7 @@ export async function loadAnalytics() {
       statusData: statusData || [],
     };
     setTimeout(() => { renderCharts(); }, 0);
-  } catch(e) { console.error('loadAnalytics:', e); }
+  } catch(e) { }
 }
 
 export async function loadSellerAnalytics(myListings) {
@@ -303,7 +308,7 @@ export async function loadSellerAnalytics(myListings) {
       conversionRate: totalInquiries ? Math.round(converted / totalInquiries * 100) : 0,
       totalRevenue, avgRating, byProduct, totalReviews: reviews?.length || 0
     };
-  } catch(e) { console.error('sellerAnalytics:', e); }
+  } catch(e) { }
   sellerAnalyticsLoading.value = false;
 }
 
@@ -499,7 +504,7 @@ export async function obUploadAvatar() {
     const { data } = sb.storage.from('avatars').getPublicUrl(path);
     obF.avatar_uploading = false;
     return data.publicUrl;
-  } catch(e) { obF.avatar_uploading = false; console.error('Avatar upload:', e); return null; }
+  } catch(e) { obF.avatar_uploading = false; return null; }
 }
 
 export async function obSaveProfile() {
@@ -714,7 +719,7 @@ export async function uploadProductImage() {
     const { data } = sb.storage.from('products').getPublicUrl(path);
     pF.uploading = false;
     return data.publicUrl;
-  } catch(e) { pF.uploading = false; console.error('Image upload failed:', e); return pF.image_url || ''; }
+  } catch(e) { pF.uploading = false; return pF.image_url || ''; }
 }
 
 export function handleAdditionalImages(e) {
@@ -746,10 +751,10 @@ export async function uploadAdditionalImages() {
       const ext  = item.file.name.split('.').pop();
       const path = `products/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
       const { error: upErr } = await sb.storage.from('products').upload(path, item.file, { cacheControl: '3600', upsert: false });
-      if (upErr) { console.error('Extra image upload:', upErr); continue; }
+      if (upErr) { continue; }
       const { data: urlData } = sb.storage.from('products').getPublicUrl(path);
       uploaded.push({ url: urlData.publicUrl, path });
-    } catch(e) { console.error('uploadAdditionalImages:', e); }
+    } catch(e) { }
   }
   return uploaded;
 }
@@ -854,7 +859,7 @@ export async function submitBasket(basketTotal) {
       description: `Procurement basket -- ${basket.value.length} items submitted`,
       location: 'TechMedixLink Platform', event_time: new Date().toISOString(), created_at: new Date().toISOString()
     });
-  } catch(e) { console.warn('tracking_events:', e.message); }
+  } catch(e) { }
   await createNotification(profile.value.id, 'status_update', 'Basket Submitted',
     `Procurement request ${request_number} for ${basket.value.length} items submitted.`, reqData.id, 'in_app');
   await loadReqs(); await loadProds();
@@ -963,7 +968,6 @@ export async function updateStatus(r, newStatus) {
   const valid = STATUS_TRANSITIONS[r.status] || [];
   if (!valid.includes(newStatus) && profile.value?.user_role === 'admin') {
     // Allow but it's a backward/non-standard move — just proceed
-    console.warn('Non-standard status transition:', r.status, '->', newStatus);
   }
   openStatusMenu.value = null;
   if (profile.value?.user_role === 'admin') {
@@ -1046,7 +1050,7 @@ export async function openDetailModal(r) {
         ? (await sb.from('users').select('avatar_url').eq('id', asgn.shopper.user_id).single()).data?.avatar_url || null
         : null;
     }
-  } catch(e) { console.error('shopper fetch:', e); }
+  } catch(e) { }
   detailReq.value = req;
   assignShopperId.value = '';
   if (req.items?.length && req.items[0]?.product_id) loadProductReviews(req.items[0].product_id);
@@ -1249,7 +1253,7 @@ export async function openProductDetail(p) {
       const userMap = Object.fromEntries((usersData || []).map(u => [u.id, u]));
       pdReviews.value = rvData.map(r => ({ ...r, user: userMap[r.user_id] || null }));
     } else { pdReviews.value = []; }
-  } catch(e) { console.error('pdReviews:', e); }
+  } catch(e) { }
   pdLoading.value = false;
 }
 
@@ -1264,7 +1268,7 @@ export async function loadProductReviews(productId) {
       const userMap = Object.fromEntries((usersData || []).map(u => [u.id, u]));
       productReviews.value = rvData.map(r => ({ ...r, user: userMap[r.user_id] || null }));
     } else { productReviews.value = []; }
-  } catch(e) { console.error('loadProductReviews:', e); }
+  } catch(e) { }
 }
 
 export async function saveReview() {
@@ -1563,7 +1567,7 @@ export async function openMessages(r) {
     if (error) throw error;
     messages.value = data || [];
     await sb.from('messages').update({ is_read: true }).eq('request_id', r.id).neq('sender_id', profile.value?.id);
-  } catch(e) { console.error('openMessages:', e); }
+  } catch(e) { }
   finally { messagesLoading.value = false; }
   if (activeMessageChannel) sb.removeChannel(activeMessageChannel);
   activeMessageChannel = sb.channel(`messages-${r.id}`)
@@ -1763,7 +1767,7 @@ export async function loadPlatformFeatures() {
       .eq('is_public', true)
       .order('name');
     reqTemplates.value = templates || [];
-  } catch(e) { console.error('loadPlatformFeatures:', e); }
+  } catch(e) { }
 }
 
 // ── Load accessories for a product ───────────────────────────
@@ -1777,7 +1781,7 @@ export async function loadProductAccessories(productId) {
     productAccessories.value = (data || [])
       .filter(a => a.accessory?.is_active)
       .map(a => a.accessory);
-  } catch(e) { console.error('loadAccessories:', e); }
+  } catch(e) { }
 }
 
 // ── Apply request template ────────────────────────────────────
@@ -1857,7 +1861,7 @@ export async function autoQuoteRequest(reqId, product, qty) {
       notification_type: 'status_update',
       request_id: reqId,
     });
-  } catch(e) { console.error('autoQuote:', e); }
+  } catch(e) { }
 }
 
 // ── Open external URL ─────────────────────────────────────────
