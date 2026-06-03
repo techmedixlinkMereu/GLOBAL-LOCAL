@@ -31,7 +31,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="TechMedixLink · Medical Equipment Platform">
 <meta name="twitter:description" content="Tanzania's premier medical equipment sourcing and procurement marketplace.">
-<link rel="stylesheet" href="app.css?v19">
+<link rel="stylesheet" href="app.css?v20">
 <style>
 @keyframes skeleton-pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .basket-pulse .fa-basket-shopping{animation:basket-bounce 0.4s ease}
@@ -792,6 +792,23 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
 
           <!-- ═══════════════════════════════════════════════
+               AD BANNER — top placement
+          ══════════════════════════════════════════════════ -->
+          <div v-if="topAd" class="lp-ad-banner fu fu-1"
+            :style="{background:topAd.bg_color||'#0a1f3c'}"
+            @click="trackAdClick(topAd);topAd.cta_url&&openExternalUrl(topAd.cta_url)">
+            <div class="lp-ad-inner">
+              <div class="lp-ad-badge">Sponsored</div>
+              <div class="lp-ad-title" :style="{color:topAd.text_color||'white'}">{{ topAd.title }}</div>
+              <div class="lp-ad-sub" :style="{color:(topAd.text_color||'white')+'cc'}">{{ topAd.subtitle }}</div>
+            </div>
+            <button class="lp-ad-cta" @click.stop="trackAdClick(topAd);topAd.cta_url&&openExternalUrl(topAd.cta_url)">
+              {{ topAd.cta_text || 'Learn More' }} →
+            </button>
+            <div class="lp-ad-close" @click.stop="topAd=null" title="Dismiss"><i class="fas fa-times"></i></div>
+          </div>
+
+          <!-- ═══════════════════════════════════════════════
                SCROLLABLE PRODUCT DISCOVERY SECTION
                Visible to ALL users — no login required
           ══════════════════════════════════════════════════ -->
@@ -931,6 +948,50 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="lp-trust-block-ico" style="background:rgba(37,211,102,0.1);color:#1a8a3a"><i class="fab fa-whatsapp"></i></div>
                 <div class="lp-trust-block-ttl">WhatsApp support</div>
                 <div class="lp-trust-block-desc">Direct line to our team throughout your order. Questions about a product, delivery timeline, or customs? Message us any time.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── ADVERTISE WITH US ── -->
+          <div class="lp-advertise-section">
+            <div class="lp-ad-grid">
+              <div class="lp-ad-info">
+                <div class="lp-ad-section-badge">For Suppliers & Distributors</div>
+                <div class="lp-ad-section-ttl">Reach 500+ hospital procurement officers</div>
+                <div class="lp-ad-section-sub">TechMedixLink connects you directly with medical facility buyers across Tanzania. Feature your products, sponsor categories, or run targeted campaigns.</div>
+                <div class="lp-ad-packages">
+                  <div class="lp-ad-pkg">
+                    <div class="lp-ad-pkg-name">Featured Listing</div>
+                    <div class="lp-ad-pkg-price">$49 <span>/month</span></div>
+                    <div class="lp-ad-pkg-desc">Your product at the top of relevant searches with a Featured badge</div>
+                  </div>
+                  <div class="lp-ad-pkg lp-ad-pkg-popular">
+                    <div class="lp-ad-pkg-badge">Most popular</div>
+                    <div class="lp-ad-pkg-name">Banner Ad</div>
+                    <div class="lp-ad-pkg-price">$99 <span>/month</span></div>
+                    <div class="lp-ad-pkg-desc">Full-width banner on the homepage seen by all visitors</div>
+                  </div>
+                  <div class="lp-ad-pkg">
+                    <div class="lp-ad-pkg-name">Category Sponsor</div>
+                    <div class="lp-ad-pkg-price">$199 <span>/month</span></div>
+                    <div class="lp-ad-pkg-desc">Exclusive sponsorship of a product category — your brand everywhere buyers look</div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:var(--s3);margin-top:var(--s4);flex-wrap:wrap">
+                  <a href="https://wa.me/34659447627?text=Hi%20TechMedixLink%2C%20I%20want%20to%20advertise%20on%20your%20platform" target="_blank" class="btn btn-p" style="text-decoration:none"><i class="fab fa-whatsapp"></i>Discuss advertising</a>
+                  <span style="font-size:var(--txs);color:var(--tx-3);align-self:center">or email: ads@techmedixlink.co.tz</span>
+                </div>
+              </div>
+              <div class="lp-ad-preview">
+                <div style="font-size:10px;color:var(--tx-4);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:var(--s2)">Example placement</div>
+                <!-- Mock ad preview -->
+                <div class="lp-ad-mock">
+                  <div class="lp-ad-mock-badge">Sponsored</div>
+                  <div style="font-weight:700;color:white;font-size:14px;margin-bottom:4px">Mindray Certified Distributor</div>
+                  <div style="color:rgba(255,255,255,0.7);font-size:11px;margin-bottom:var(--s3)">Official Mindray equipment with factory warranty &amp; local service</div>
+                  <div class="lp-ad-mock-cta">Get Quote →</div>
+                </div>
+                <div style="font-size:10px;color:var(--tx-3);margin-top:var(--s2);text-align:center">Seen by buyers actively sourcing equipment</div>
               </div>
             </div>
           </div>
@@ -1106,7 +1167,21 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
         <!-- Product grid -->
-        <!-- Category quick filter pills -->
+        <!-- Group buy active pools -->
+          <div v-if="activeGroupBuys&&activeGroupBuys.length" class="lp-group-buy-strip fu fu-1">
+            <div class="lp-gb-label"><i class="fas fa-users"></i> Group orders — save more together</div>
+            <div class="lp-gb-cards">
+              <div v-for="pool in activeGroupBuys" :key="pool.id" class="lp-gb-card" @click="joinGroupBuy(pool)">
+                <div class="lp-gb-product">{{ pool.product_name }}</div>
+                <div class="lp-gb-progress">
+                  <div class="lp-gb-bar"><div class="lp-gb-fill" :style="{width:(pool.current_quantity/pool.target_quantity*100)+'%'}"></div></div>
+                  <div class="lp-gb-nums"><span style="color:var(--ok);font-weight:700">{{ pool.current_quantity }}</span>/{{ pool.target_quantity }} joined</div>
+                </div>
+                <div class="lp-gb-saving">Save {{ pool.pool_discount_pct }}% · <span style="color:var(--ok)">Join now</span></div>
+              </div>
+            </div>
+          </div>
+          <!-- Category quick filter pills -->
         <div style="display:flex;gap:var(--s2);flex-wrap:wrap;margin-bottom:var(--s3)" class="fu fu-1">
           <button @click="prodTypeFilter='all'" class="cat-pill" :class="{active:prodTypeFilter==='all'}"><i class="fas fa-th-large"></i>All</button>
           <button @click="prodTypeFilter='medical_device'" class="cat-pill" :class="{active:prodTypeFilter==='medical_device'}"><i class="fas fa-stethoscope"></i>Medical Devices</button>
@@ -2139,6 +2214,17 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
 
       <!-- How are you ordering? — 3 big cards -->
+      <!-- Facility templates -->
+      <div v-if="reqTemplates.length" class="req-templates-bar">
+        <span class="req-templates-label"><i class="fas fa-magic-wand-sparkles"></i> Quick start:</span>
+        <button v-for="t in reqTemplates.slice(0,3)" :key="t.id"
+          @click="applyReqTemplate(t)"
+          class="req-template-chip">
+          {{ t.name }}
+        </button>
+        <span style="font-size:10px;color:var(--tx-4)">or build your own ↓</span>
+      </div>
+
       <div class="req-type-strip">
         <div class="req-type-card" :class="{active:rF.source_type==='catalog'}"
           @click="rF.source_type='catalog';rF.custom_name='';rF.custom_desc='';rF.source_url=''">
@@ -2171,6 +2257,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             <!-- CATALOGUE PATH — visual product picker -->
             <template v-if="rF.source_type==='catalog'">
+              <!-- Auto-quote notice -->
+              <div class="info-strip ok" style="margin-bottom:var(--s2)">
+                <i class="fas fa-bolt" style="color:var(--ok);flex-shrink:0"></i>
+                <div style="font-size:var(--txs);color:var(--ok);line-height:1.5">
+                  <strong>Auto-quote enabled</strong> — catalogue items get an instant quote the moment you submit. No waiting.
+                </div>
+              </div>
               <!-- Search within catalogue -->
               <div class="fg" style="margin-bottom:var(--s2)">
                 <div style="position:relative">
@@ -3471,8 +3564,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
           <!-- Share / track -->
           <!-- Bottom actions -->
+          <!-- Related accessories / consumables -->
+          <div v-if="productAccessories&&productAccessories.length" style="margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--ln-1)">
+            <div style="font-size:10px;font-weight:700;color:var(--tx-4);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:var(--s2)"><i class="fas fa-boxes-stacked" style="font-size:9px"></i> You may also need</div>
+            <div v-for="acc in productAccessories.slice(0,3)" :key="acc.id" class="acc-row" @click="openProductDetail(acc)">
+              <div class="acc-img"><img v-if="acc.image_url" :src="acc.image_url" loading="lazy"><i v-else class="fas fa-box" style="font-size:10px;color:var(--tx-4)"></i></div>
+              <div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600;color:var(--tx-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ acc.name }}</div><div style="font-size:10px;color:var(--tx-3)">${{ fNum(acc.base_price_usd) }}</div></div>
+              <i class="fas fa-chevron-right" style="font-size:9px;color:var(--tx-4);flex-shrink:0"></i>
+            </div>
+          </div>
+
           <div style="display:flex;gap:var(--s2);margin-top:var(--s2)">
             <button @click="showProductDetail=false;goTab('browse')" class="btn btn-g btn-sm" style="flex:1"><i class="fas fa-arrow-left"></i>Back</button>
+            <button v-if="profile" @click="addPriceAlert(viewedProduct)" class="btn btn-g btn-sm btn-sq" title="Alert me when price drops"><i class="fas fa-bell" style="font-size:11px"></i></button>
             <button v-if="canBuy" @click="showReqModal=true;rF.source_type='manual';rF.custom_name=viewedProduct.name;showProductDetail=false" class="btn btn-s btn-sm" title="Custom sourcing request"><i class="fas fa-pen"></i>Custom</button>
             <a :href="'https://wa.me/?text='+encodeURIComponent('Check out '+viewedProduct.name+' on TechMedixLink — '+tzs(Math.round(viewedProduct.base_price_usd*(usdToTzs||2672)))+'. Visit: https://techmedixlinkmereu.github.io/GLOBAL-LOCAL')" target="_blank" class="btn btn-g btn-sm btn-sq" title="Share on WhatsApp" style="background:rgba(37,211,102,0.1);border-color:rgba(37,211,102,0.3);color:#1a8a3a"><i class="fab fa-whatsapp" style="font-size:14px"></i></a>
           </div>
@@ -3776,7 +3880,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
 <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script type="module" src="js/main.js?v19"></script>
+<script type="module" src="js/main.js?v20"></script>
 <script>
 // Register service worker for cache control
 if ('serviceWorker' in navigator) {
