@@ -2,7 +2,7 @@
 // TechMedixLink · js/main.js
 // Vue app entry point — wires state + actions into setup()
 // ─────────────────────────────────────────────────────────────────
-   
+
 import * as S from './state.js';
 import * as A from './actions.js';
 import * as F from './formatters.js';
