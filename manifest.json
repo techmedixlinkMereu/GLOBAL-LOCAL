@@ -5,14 +5,13 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a1f3c",
-  "theme_color": "#0a1f3c", 
+  "theme_color": "#0a1f3c",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "favicon.svg",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230a1f3c'/%3E%3Cpath d='M36 0 L64 0 L64 64 L24 64 L24 0 Z' fill='%23112244'/%3E%3Cpolyline points='4,32 10,32 14,22 20,42 24,28 28,32 32,32' stroke='%234dc8d0' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Ccircle cx='48' cy='32' r='13' stroke='%233a9bd5' stroke-width='2' fill='none'/%3E%3Cpath d='M44 39 L44 30 Q44 26 48 26 Q52 26 52 30 L52 39 Z' fill='%233a9bd5' opacity='.85'/%3E%3C/svg%3E",
       "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "type": "image/svg+xml"
     }
   ]
 }
