@@ -31,7 +31,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="TechMedixLink · Medical Equipment Platform">
 <meta name="twitter:description" content="Tanzania's premier medical equipment sourcing and procurement marketplace.">
-<link rel="stylesheet" href="app.css?v27">
+<link rel="stylesheet" href="app.css?v28">
 <style>
 @keyframes skeleton-pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .basket-pulse .fa-basket-shopping{animation:basket-bounce 0.4s ease}
@@ -484,6 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-item" :class="{active:tab==='my-requests'}" @click="goTab('my-requests')"><i class="ni fas fa-clipboard-list"></i>My Requests<span v-if="myActiveReqs.length" class="nav-chip">{{  myActiveReqs.length  }}</span></div>
         <div class="nav-item" :class="{active:tab==='tracking'}" @click="goTab('tracking')"><i class="ni fas fa-location-dot"></i>Tracking</div>
         <div class="nav-item" :class="{active:tab==='payments'}" @click="goTab('payments')"><i class="ni fas fa-credit-card"></i>Payments<span v-if="pendingPayCount>0" class="nav-chip">{{  pendingPayCount  }}</span></div>
+        <div class="nav-item" :class="{active:tab==='facility'}" @click="goTab('facility')"><i class="ni fas fa-hospital"></i>Facility Account</div>
       </template>
       <template v-if="canSell && !isAdmin">
         <div class="nav-sect">My Store</div>
@@ -1355,7 +1356,12 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="pc-body">
               <div class="pc-name" @click="openProductDetail(p)" style="cursor:pointer">{{  p.name  }}</div>
-              <div class="pc-seller"><i class="fas fa-store" style="font-size:8px"></i><span class="pc-seller-link" @click.stop="manufFilter=p.seller_name||'TechMedixLink';goTab('browse')" :title="'Browse all from '+( p.seller_name||'TechMedixLink')">{{  p.seller_name||'TechMedixLink'  }}</span><span v-if="p.seller_verified || adminUsers.find(u=>u.id===p.user_id)?.company_name?.startsWith('[VERIFIED]')" class="vbadge"><i class="fas fa-check-circle"></i></span></div>
+              <div class="pc-seller" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+                <i class="fas fa-store" style="font-size:8px;flex-shrink:0"></i>
+                <span class="pc-seller-link" @click.stop="manufFilter=p.seller_name||'TechMedixLink';goTab('browse')" :title="'Browse all from '+( p.seller_name||'TechMedixLink')">{{  p.seller_name||'TechMedixLink'  }}</span>
+                <span v-if="p.seller_verified||adminUsers.find(u=>u.id===p.user_id)?.company_name?.startsWith('[VERIFIED]')" class="vbadge"><i class="fas fa-check-circle"></i></span>
+                <span v-if="adminUsers.find(u=>u.id===p.user_id)?.seller_response_time_hours" class="response-badge"><i class="fas fa-bolt" style="font-size:7px"></i>{{ adminUsers.find(u=>u.id===p.user_id).seller_response_time_hours }}h</span>
+              </div>
               <div class="pc-loc"><i class="fas fa-location-dot" style="font-size:8px"></i>{{  p.country||'Tanzania'  }}</div>
               <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;flex-wrap:wrap">
                 <div v-if="p.stock_quantity>0" class="lead-badge lead-stock"><i class="fas fa-circle" style="font-size:6px"></i>In stock</div>
@@ -1567,6 +1573,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
       <!-- ── TRACKING ── -->
       <div v-if="tab==='tracking'">
+        <!-- Live delivery map placeholder -->
+        <div v-if="trackedReq&&trackedReq.status&&['shipped','in_transit','customs_clearance'].includes(trackedReq.status)" class="delivery-map-card fu fu-1">
+          <div class="delivery-map-hd">
+            <i class="fas fa-map-location-dot" style="color:var(--philips);font-size:18px"></i>
+            <div>
+              <div style="font-weight:700;color:var(--tx-1);font-size:var(--tsm)">Live shipment tracking</div>
+              <div style="font-size:var(--txs);color:var(--tx-3)">{{ trackedReq.request_number }} · {{ fStatus(trackedReq.status) }}</div>
+            </div>
+            <span class="badge b-ok" style="margin-left:auto;animation:pulse 2s infinite"><i class="fas fa-circle" style="font-size:7px"></i>Live</span>
+          </div>
+          <div id="delivery-map" class="delivery-map-container">
+            <div class="delivery-map-route">
+              <div class="delivery-map-node delivery-map-origin">
+                <i class="fas fa-industry"></i>
+                <div style="font-size:10px;margin-top:4px;color:var(--tx-3)">Origin</div>
+                <div style="font-size:11px;font-weight:700;color:var(--tx-1)">{{ trackedReq.country||'Source country' }}</div>
+              </div>
+              <div class="delivery-map-line">
+                <div class="delivery-map-progress" :style="{width: trackedReq.status==='shipped'?'30%':trackedReq.status==='in_transit'?'60%':'80%'}"></div>
+                <div class="delivery-map-plane" :style="{left: trackedReq.status==='shipped'?'28%':trackedReq.status==='in_transit'?'58%':'78%'}">
+                  <i class="fas fa-plane" style="font-size:14px;color:var(--philips)"></i>
+                </div>
+              </div>
+              <div class="delivery-map-node delivery-map-dest">
+                <i class="fas fa-hospital"></i>
+                <div style="font-size:10px;margin-top:4px;color:var(--tx-3)">Destination</div>
+                <div style="font-size:11px;font-weight:700;color:var(--tx-1)">Tanzania</div>
+              </div>
+            </div>
+            <div style="text-align:center;margin-top:var(--s3);font-size:var(--txs);color:var(--tx-3)">
+              <i class="fas fa-info-circle"></i>
+              Real-time GPS tracking available after customs clearance · <a href="https://wa.me/34659447627" target="_blank" style="color:var(--philips)">Contact us for exact location</a>
+            </div>
+          </div>
+        </div>
         <div class="sect-hd fu"><div><div class="sect-ttl">Track Shipment</div><div class="sect-sub">Enter your request number</div></div></div>
         <div class="card fu fu-1" style="margin-bottom:var(--s5)">
           <div style="display:flex;gap:var(--s2)">
@@ -2395,6 +2436,14 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="req-type-desc">Amazon, Alibaba, any website</div>
           <div v-if="rF.source_type==='link'" class="req-type-check"><i class="fas fa-check"></i></div>
         </div>
+
+        <div class="req-type-card" :class="{active:rF.source_type==='brief'}"
+          @click="rF.source_type='brief';rF.product_id=''">
+          <div class="req-type-icon" style="background:rgba(26,122,74,0.10);color:#1a7a4a"><i class="fas fa-brain"></i></div>
+          <div class="req-type-label">Describe a Problem</div>
+          <div class="req-type-desc">Tell us your clinical need</div>
+          <div v-if="rF.source_type==='brief'" class="req-type-check"><i class="fas fa-check"></i></div>
+        </div>
       </div>
 
       <div class="modal-body req-modal-body">
@@ -2524,6 +2573,74 @@ document.addEventListener('DOMContentLoaded', () => {
                 <label class="lbl">Additional notes <span style="color:var(--tx-4);font-weight:400">(optional)</span></label>
                 <textarea v-model="rF.custom_desc" class="tex" style="min-height:70px"
                   placeholder="Quantity, specific variant (colour/size/voltage), acceptable alternatives, deadline…"></textarea>
+              </div>
+            </template>
+
+            <!-- OPEN BRIEF PATH -->
+            <template v-if="rF.source_type==='brief'">
+              <div class="req-hint-strip" style="background:rgba(26,122,74,0.07);border-left-color:#1a7a4a">
+                <i class="fas fa-lightbulb" style="color:#1a7a4a"></i>
+                <div>
+                  <div style="font-weight:700;margin-bottom:2px;color:#1a7a4a">Describe your clinical need — we recommend the right equipment</div>
+                  <div style="opacity:0.85">Don't know the exact product? Tell us the problem you're trying to solve. Our medical equipment specialists will identify the best solution and source it for you.</div>
+                </div>
+              </div>
+              <div class="fg">
+                <label class="lbl req">Clinical setting</label>
+                <select v-model="rF.brief_setting" class="sel">
+                  <option value="">Select setting…</option>
+                  <option value="emergency">Emergency / A&E</option>
+                  <option value="icu">ICU / Critical Care</option>
+                  <option value="maternity">Maternity / Labour ward</option>
+                  <option value="theatre">Operating Theatre</option>
+                  <option value="outpatient">Outpatient / OPD</option>
+                  <option value="laboratory">Laboratory</option>
+                  <option value="radiology">Radiology / Imaging</option>
+                  <option value="pharmacy">Pharmacy</option>
+                  <option value="general">General ward</option>
+                  <option value="rural">Rural / Community health</option>
+                </select>
+              </div>
+              <div class="fg">
+                <label class="lbl req">Describe the clinical problem or need</label>
+                <textarea v-model="rF.brief_problem" class="tex req-tex"
+                  placeholder="Examples:&#10;• We need to monitor 8 patients simultaneously in our ICU but only have 2 working monitors&#10;• We process 150 blood samples daily but our centrifuge broke and repairs cost more than replacement&#10;• We need to perform point-of-care ultrasound in a rural setting with no reliable power&#10;• We are setting up a new dental clinic and need a complete X-ray setup"></textarea>
+              </div>
+              <div class="fr2">
+                <div class="fg">
+                  <label class="lbl req">Daily patient volume</label>
+                  <select v-model="rF.brief_volume" class="sel">
+                    <option value="low">Low (1–20 patients/day)</option>
+                    <option value="medium">Medium (20–100)</option>
+                    <option value="high">High (100–500)</option>
+                    <option value="very_high">Very high (500+)</option>
+                  </select>
+                </div>
+                <div class="fg">
+                  <label class="lbl">Power reliability</label>
+                  <select v-model="rF.brief_power" class="sel">
+                    <option value="stable">Stable grid power</option>
+                    <option value="intermittent">Intermittent / load shedding</option>
+                    <option value="solar">Solar only</option>
+                    <option value="generator">Generator backup</option>
+                    <option value="none">No reliable power</option>
+                  </select>
+                </div>
+              </div>
+              <div class="fg">
+                <label class="lbl">Budget range (USD, approx)</label>
+                <div style="display:flex;gap:var(--s2);align-items:center">
+                  <input type="number" v-model.number="rF.brief_budget_min" class="inp" placeholder="Min" style="max-width:100px">
+                  <span style="color:var(--tx-3)">–</span>
+                  <input type="number" v-model.number="rF.brief_budget_max" class="inp" placeholder="Max" style="max-width:100px">
+                  <span style="font-size:11px;color:var(--tx-3)">USD</span>
+                </div>
+              </div>
+              <div class="info-strip ok" style="margin-top:var(--s2)">
+                <i class="fas fa-clock" style="color:var(--ok);flex-shrink:0"></i>
+                <div style="font-size:var(--txs);color:var(--ok)">
+                  <strong>Response within 4 hours.</strong> Our specialist will review your clinical context and recommend the most appropriate equipment options with pricing.
+                </div>
               </div>
             </template>
 
@@ -3581,6 +3698,9 @@ document.addEventListener('DOMContentLoaded', () => {
         <!-- Floating badges — only in photo mode to avoid covering 3D canvas -->
         <div v-if="!pd3dMode" class="pd-hero-badges">
           <span v-if="viewedProduct.tmda_certified" class="badge b-ok pd-hbadge"><i class="fas fa-certificate" style="font-size:9px"></i>TMDA Certified</span>
+          <button v-if="viewedProduct.tmda_certified" @click.stop="generateTmdaPassport(viewedProduct)" class="pd-hbadge" style="background:rgba(26,122,74,0.75);border:1px solid rgba(255,255,255,0.2);color:white;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;padding:3px 8px;border-radius:99px" title="Download compliance passport">
+            <i class="fas fa-file-shield"></i>Passport
+          </button>
           <span v-if="viewedProduct.platform_type==='globaldoor'" class="badge pd-hbadge b-gd">GlobalDoor</span>
           <span class="pd-hbadge badge"
             :style="viewedProduct.stock_quantity>10?'background:rgba(26,122,74,0.75)!important':viewedProduct.stock_quantity>0?'background:rgba(196,122,0,0.75)!important':'background:rgba(192,57,43,0.75)!important'"
@@ -3694,6 +3814,20 @@ document.addEventListener('DOMContentLoaded', () => {
               <div style="display:flex;justify-content:space-between;font-weight:700;color:var(--tx-2);border-top:1px solid var(--ln-1);padding-top:4px;margin-top:4px"><span>Est. total</span><span style="font-family:var(--fm);color:var(--philips)">{{ tzs(Math.round(viewedProduct.base_price_usd * usdToTzs * 1.18)) }}</span></div>
             </div>
             <div style="font-size:9px;color:var(--tx-4);margin-top:var(--s2);text-align:center;line-height:1.5">Exact quote provided within 24h after request</div>
+            <!-- Price benchmark vs market -->
+            <div v-if="productBenchmark" class="pd-benchmark">
+              <div style="font-size:10px;font-weight:700;color:var(--tx-4);margin-bottom:6px;letter-spacing:0.06em;text-transform:uppercase"><i class="fas fa-chart-bar" style="font-size:9px"></i> Market price range</div>
+              <div style="position:relative;height:8px;background:var(--bg-3);border-radius:99px;margin-bottom:6px">
+                <div class="pd-bench-bar"></div>
+                <div class="pd-bench-dot" :style="{left:benchmarkPct+'%'}" :title="'This product: $'+fNum(viewedProduct.base_price_usd)"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--tx-4)">
+                <span>Low ${{ fNum(productBenchmark.min_price_usd) }}</span>
+                <span class="bench-label" :class="benchmarkPct<35?'bench-low':benchmarkPct>65?'bench-high':'bench-mid'">{{ benchmarkPct<35?'Below market':benchmarkPct>65?'Above market':'Mid-range' }}</span>
+                <span>High ${{ fNum(productBenchmark.max_price_usd) }}</span>
+              </div>
+              <div style="font-size:9px;color:var(--tx-4);text-align:center;margin-top:3px">Based on {{ productBenchmark.sample_count }} similar orders</div>
+            </div>
           </div>
 
           <!-- Stock status only in panel — platform already shown in hero -->
@@ -4057,7 +4191,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
 <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script type="module" src="js/main.js?v27"></script>
+<script type="module" src="js/main.js?v28"></script>
 <script>
 // Register service worker for cache control
 if ('serviceWorker' in navigator) {
