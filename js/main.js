@@ -14,6 +14,19 @@ const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
 const app = createApp({
   setup() {
 
+    // Search autocomplete suggestions
+    const searchSuggestions = computed(() => {
+      if (!S.globalSearch.value || S.globalSearch.value.length < 2) return [];
+      const q = S.globalSearch.value.toLowerCase();
+      return S.products.value
+        .filter(p => p.is_active && (
+          p.name?.toLowerCase().includes(q) ||
+          p.manufacturer?.toLowerCase().includes(q) ||
+          p.product_type?.toLowerCase().includes(q)
+        ))
+        .slice(0, 6);
+    });
+
     // Landing page filtered products
     const lpFilteredProducts = computed(() => {
       let list = S.products.value.filter(p => p.is_active);
@@ -369,6 +382,7 @@ const app = createApp({
       // Load platform features (ads, group buys, templates)
       A.loadPlatformFeatures();
       A.loadVerifiedSellers();
+      A.loadRecentlyViewed();
 
       // ITEM 85: Restore basket from localStorage
       try {
