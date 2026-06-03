@@ -476,7 +476,7 @@ const app = createApp({
                 await A.loadPayments(); await A.loadReqs();
               })
               .subscribe((status) => {
-                if (status === 'SUBSCRIBED') console.log('[TML Realtime] Live updates active');
+                if (status === 'SUBSCRIBED')
               });
 
             window.addEventListener('beforeunload', () => { sb.removeChannel(realtimeChannel); });
@@ -494,7 +494,6 @@ const app = createApp({
             if (!session) await A.loadAll();
           }
         } catch(e) {
-          console.error('[TML auth]', event, e);
         } finally {
           S.loading.value = false;
         }
