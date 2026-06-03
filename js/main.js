@@ -366,6 +366,9 @@ const app = createApp({
     onMounted(() => {
       document.addEventListener('keydown', handleKey);
 
+      // Load platform features (ads, group buys, templates)
+      A.loadPlatformFeatures();
+
       // ITEM 85: Restore basket from localStorage
       try {
         const savedBasket = localStorage.getItem('tml_basket');
