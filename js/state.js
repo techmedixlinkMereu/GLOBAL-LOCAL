@@ -254,3 +254,10 @@ export const stepperStages = [
   { val: 'customs_clearance', short: 'Customs'  },
   { val: 'delivered',         short: 'Delivered'},
 ];
+
+// ── New features ────────────────────────────────────────────────
+export const topAd              = ref(null);
+export const activeGroupBuys    = ref([]);
+export const reqTemplates       = ref([]);
+export const productAccessories = ref([]);
+export const priceAlerts        = ref([]);
