@@ -1826,7 +1826,7 @@ export async function addPriceAlert(product) {
     product_type: product.product_type,
     target_price_usd: Math.round(target * 100) / 100,
   });
-  if (!error) toast('ok', 'Price alert set!', 'We'll notify you when ' + product.name + ' drops below $' + Math.round(target));
+  if (!error) toast('ok', 'Price alert set!', 'We will notify you when ' + product.name + ' drops below $' + Math.round(target));
 }
 
 // ── Auto-quote for catalogue requests ────────────────────────
