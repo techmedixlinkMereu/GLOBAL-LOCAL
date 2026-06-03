@@ -3020,3 +3020,156 @@ body.modal-open { overflow: hidden; }
 /* ── btn-wn style ── */
 .btn-wn { background: var(--warn-bg); color: var(--warn); border-color: var(--warn-bd); }
 .btn-wn:hover { background: var(--warn); color: white; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   50-FEATURE ADDITIONS
+═══════════════════════════════════════════════════════════════════ */
+
+/* ── Lead time badges on product cards ── */
+.lead-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 99px;
+}
+.lead-stock  { background: rgba(26,122,74,0.12); color: #1a7a4a; }
+.lead-fast   { background: rgba(0,102,161,0.10); color: var(--philips); }
+.lead-normal { background: rgba(0,0,0,0.06); color: var(--tx-3); }
+.lead-refurb { background: rgba(196,122,0,0.10); color: var(--warn); }
+.lead-moq    { background: var(--bg-2); color: var(--tx-4); }
+
+/* ── Recently viewed strip ── */
+.rv-card {
+  flex-shrink: 0;
+  width: 100px;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.rv-card:hover { transform: translateY(-2px); }
+.rv-img {
+  width: 100px;
+  height: 70px;
+  border-radius: var(--r2);
+  background: var(--bg-2);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+  border: 1px solid var(--ln-1);
+}
+.rv-img img { width: 100%; height: 100%; object-fit: cover; }
+.rv-name { font-size: 10px; font-weight: 600; color: var(--tx-2); line-height: 1.3; margin-bottom: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.rv-price { font-size: 10px; font-family: var(--fm); color: var(--philips); font-weight: 700; }
+
+/* ── Search autocomplete ── */
+.search-autocomplete {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: var(--bg-0);
+  border: 1px solid var(--ln-2);
+  border-radius: var(--r2);
+  box-shadow: var(--sh3);
+  z-index: 999;
+  overflow: hidden;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.search-ac-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.1s;
+  border-bottom: 1px solid var(--ln-0);
+}
+.search-ac-item:last-child { border-bottom: none; }
+.search-ac-item:hover { background: var(--philips-l); }
+.search-ac-img {
+  width: 32px; height: 32px;
+  border-radius: var(--r1);
+  background: var(--bg-2);
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.search-ac-img img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ── Product voting ── */
+.lp-vote-section {
+  margin: var(--s4) 0;
+  background: var(--bg-0);
+  border: 1px solid var(--ln-1);
+  border-radius: var(--r3);
+  padding: var(--s4) var(--s5);
+}
+.lp-vote-card {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s2) var(--s3);
+  background: var(--bg-0);
+  border: 1px solid var(--ln-1);
+  border-radius: var(--r2);
+  cursor: pointer;
+  transition: all 0.12s;
+  flex: 1 1 180px;
+  min-width: 0;
+}
+.lp-vote-card:hover { border-color: var(--philips); background: var(--philips-l); }
+.lp-vote-count {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--philips);
+  font-family: var(--fm);
+  flex-shrink: 0;
+  background: var(--philips-l);
+  padding: 3px 8px;
+  border-radius: 99px;
+}
+
+/* ── Newsletter ── */
+.lp-newsletter {
+  background: linear-gradient(135deg, #0a1f3c 0%, #0f2744 100%);
+  border-radius: var(--r3);
+  padding: var(--s4) var(--s5);
+  margin: var(--s4) 0;
+}
+.lp-newsletter-inner {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  flex-wrap: wrap;
+}
+.lp-newsletter-inp {
+  background: rgba(255,255,255,0.1) !important;
+  border-color: rgba(255,255,255,0.2) !important;
+  color: white !important;
+}
+.lp-newsletter-inp::placeholder { color: rgba(255,255,255,0.4) !important; }
+
+/* ── Dispute flag btn ── */
+.btn-flag { color: var(--warn); }
+
+/* Dark mode additions */
+@media (prefers-color-scheme: dark) {
+  .search-autocomplete { background: var(--bg-1); }
+  .lp-vote-card { background: var(--bg-1); }
+  .lp-vote-section { background: var(--bg-0); }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .rv-card { width: 80px; }
+  .rv-img  { width: 80px; height: 56px; }
+  .lp-newsletter-inner { flex-direction: column; align-items: stretch; }
+  .lp-vote-card { flex: 1 1 100%; }
+}
