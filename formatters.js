@@ -5,7 +5,7 @@
 
 export function fNum(n) {
   if (n == null) return '0';
-  return Math.round(n).toLocaleString('en-US');
+  return Math.round(n).toLocaleString('en-US');   
 }
 
 export function tzs(n) {
