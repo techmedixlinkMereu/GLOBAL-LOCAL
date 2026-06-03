@@ -93,23 +93,7 @@ const app = createApp({
       const shipping = Math.round(items * TECHMEDIX_CONFIG.app.shippingPercent);
       const duty     = S.rF.platform_type === 'globaldoor' ? Math.round(items * ((p.import_duty_percent || 25) / 100)) : 0;
       const fee      = Math.round((items + shipping + duty) * TECHMEDIX_CONFIG.app.serviceFeePercent);
-      // Lightbox navigation
-    function lightboxPrev() {
-      if (!S.viewedProduct.value) return;
-      const all = [S.viewedProduct.value.image_url, ...(S.viewedProduct.value.images||[])].filter(Boolean);
-      const cur = all.indexOf(S.lightboxImg.value);
-      S.lightboxIndex.value = Math.max(0, cur - 1);
-      S.lightboxImg.value = all[S.lightboxIndex.value];
-    }
-    function lightboxNext() {
-      if (!S.viewedProduct.value) return;
-      const all = [S.viewedProduct.value.image_url, ...(S.viewedProduct.value.images||[])].filter(Boolean);
-      const cur = all.indexOf(S.lightboxImg.value);
-      S.lightboxIndex.value = Math.min(all.length - 1, cur + 1);
-      S.lightboxImg.value = all[S.lightboxIndex.value];
-    }
-
-    return { items, shipping, duty, fee, total: items + shipping + duty + fee };
+      return { items, shipping, duty, fee, total: items + shipping + duty + fee };
     });
 
     // ── Computed: basket ────────────────────────────────────────
@@ -513,6 +497,22 @@ const app = createApp({
         }
       });
     });
+
+    // ── Lightbox navigation ─────────────────────────────────────
+    function lightboxPrev() {
+      if (!S.viewedProduct.value) return;
+      const all = [S.viewedProduct.value.image_url, ...(S.viewedProduct.value.images||[])].filter(Boolean);
+      const cur = all.indexOf(S.lightboxImg.value);
+      S.lightboxIndex.value = Math.max(0, cur - 1);
+      S.lightboxImg.value = all[S.lightboxIndex.value];
+    }
+    function lightboxNext() {
+      if (!S.viewedProduct.value) return;
+      const all = [S.viewedProduct.value.image_url, ...(S.viewedProduct.value.images||[])].filter(Boolean);
+      const cur = all.indexOf(S.lightboxImg.value);
+      S.lightboxIndex.value = Math.min(all.length - 1, cur + 1);
+      S.lightboxImg.value = all[S.lightboxIndex.value];
+    }
 
     // ── Return: everything the template needs ────────────────────
     return {
