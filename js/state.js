@@ -261,3 +261,8 @@ export const activeGroupBuys    = ref([]);
 export const reqTemplates       = ref([]);
 export const productAccessories = ref([]);
 export const priceAlerts        = ref([]);
+
+export const dutyCategory  = ref('');
+export const dutyValue     = ref(0);
+export const dutyResult    = ref(null);
+export const verifiedSellers = ref([]);
