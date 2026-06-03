@@ -33,7 +33,7 @@ import {
   messages, messagesReq, messagesLoading, newMessageText, unreadMessageCounts,
   selectedUserIds, selectedProductIds, bulkActionLoading,
   statusList, stepperStages, toasts,
-  lastReqNumber, showReqSuccess, pdQty
+  lastReqNumber, showReqSuccess, pdQty,
   topAd,
   activeGroupBuys,
   reqTemplates,
