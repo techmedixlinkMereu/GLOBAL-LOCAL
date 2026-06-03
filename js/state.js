@@ -135,7 +135,10 @@ export const pF = reactive({
 export const rF = reactive({
   platform_type: 'techmedix', product_id: '', quantity: 1, urgency: 'normal',
   notes: '', source_type: 'catalog', address_id: '',
-  custom_name: '', custom_desc: '', source_url: ''
+  custom_name: '', custom_desc: '', source_url: '',
+  budget_code: '', insurance_added: false, approval_email: '',
+  brief_problem: '', brief_setting: '', brief_volume: 'medium',
+  brief_power: 'stable', brief_budget_min: 0, brief_budget_max: 0
 });
 
 export const uF = reactive({
@@ -276,3 +279,12 @@ export const recentlyViewed       = ref([]);
 export const showSearchSuggestions = ref(false);
 export const rF_budget_code       = ref('');
 // rF already has budget_code wired in HTML via v-model
+
+// ── Advanced features state ───────────────────────────────────────
+export const myFacility         = ref(null);
+export const facilityMembers    = ref([]);
+export const showCreateFacility = ref(false);
+export const inviteEmail        = ref('');
+export const inviteRole         = ref('requester');
+export const productBenchmark   = ref(null);
+export const benchmarkPct       = ref(50);
