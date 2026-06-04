@@ -31,7 +31,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="TechMedixLink · Medical Equipment Platform">
 <meta name="twitter:description" content="Tanzania's premier medical equipment sourcing and procurement marketplace.">
-<link rel="stylesheet" href="app.css?v28">
+<link rel="stylesheet" href="app.css?v30">
 <style>
 @keyframes skeleton-pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .basket-pulse .fa-basket-shopping{animation:basket-bounce 0.4s ease}
@@ -507,6 +507,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-sect">Operations</div>
         <div class="nav-item" :class="{active:tab==='analytics'}" @click="goTab('analytics')"><i class="ni fas fa-chart-line"></i>Analytics</div>
         <div class="nav-item" :class="{active:tab==='shoppers'}" @click="goTab('shoppers')"><i class="ni fas fa-people-carry-box"></i>Shoppers</div>
+        <div class="nav-item" @click="loadHealthStats()"><i class="ni fas fa-heart-pulse" style="color:var(--ok)"></i>Platform Health</div>
       </template>
     </nav>
     <div class="sb-user">
@@ -550,6 +551,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   <!-- ═══ MAIN ═══ -->
   <div class="main">
+      <!-- Announcement banner -->
+      <transition name="fade">
+        <div v-if="announcement" class="announcement-bar" :class="'ann-'+announcement.type">
+          <i class="fas fa-bullhorn" style="flex-shrink:0"></i>
+          <span style="flex:1;font-size:12px;margin:0 var(--s3)">{{ announcement.title }}<span v-if="announcement.message"> — {{ announcement.message }}</span></span>
+          <button @click="announcement=null" style="background:none;border:none;color:inherit;cursor:pointer;opacity:0.6;flex-shrink:0"><i class="fas fa-times"></i></button>
+        </div>
+      </transition>
 
     <!-- Rate Bar -->
     <div class="rate-bar">
@@ -585,7 +594,7 @@ document.addEventListener('DOMContentLoaded', () => {
             @keydown.enter="performSearch"
             @input="showSearchSuggestions=globalSearch.length>1"
             @focus="showSearchSuggestions=globalSearch.length>1"
-            @blur="setTimeout(()=>{showSearchSuggestions=false},200)"
+            @blur="setTimeout(()=>{ showSearchSuggestions=false; },200)"
             autocomplete="off">
           <div v-if="showSearchSuggestions&&searchSuggestions.length" class="search-autocomplete">
             <div v-for="s in searchSuggestions" :key="s.id"
@@ -604,6 +613,9 @@ document.addEventListener('DOMContentLoaded', () => {
           <i class="fas fa-bell"></i>
           <div v-if="unreadCount>0" class="ndot">{{  unreadCount>9?'9+':unreadCount  }}</div>
         </div>
+        <select v-if="profile" v-model="activeCurrency" class="sel" style="font-size:10px;height:26px;padding:0 6px;border-radius:99px;margin-right:4px;width:60px">
+          <option value="TZS">TZS</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="KES">KES</option>
+        </select>
         <div v-if="profile" class="tb-av" @click.stop="togglePanel('user')">
             <img v-if="profile.avatar_url" :src="profile.avatar_url" class="tb-av-img">
             <span v-else class="tb-av-init">{{  userInitial  }}</span>
@@ -1062,7 +1074,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="lp-duty-form">
               <div style="flex:1;min-width:180px">
                 <label style="font-size:11px;color:var(--tx-3);display:block;margin-bottom:4px">Product category</label>
-                <select v-model="dutyCategory" class="sel" style="width:100%">
+                <select v-model="dutyCategory" class="sel" style="width:100%" @change="dutyValue>0&&calcDuty()">
                   <option value="">Select category…</option>
                   <option value="medical_device">Medical Device (0–10%)</option>
                   <option value="diagnostic">Diagnostic Equipment (0%)</option>
@@ -1315,7 +1327,11 @@ document.addEventListener('DOMContentLoaded', () => {
                   <div class="lp-gb-bar"><div class="lp-gb-fill" :style="{width:(pool.current_quantity/pool.target_quantity*100)+'%'}"></div></div>
                   <div class="lp-gb-nums"><span style="color:var(--ok);font-weight:700">{{ pool.current_quantity }}</span>/{{ pool.target_quantity }} joined</div>
                 </div>
-                <div class="lp-gb-saving">Save {{ pool.pool_discount_pct }}% · <span style="color:var(--ok)">Join now</span></div>
+                <div class="lp-gb-saving">
+                  Save {{ pool.pool_discount_pct }}% ·
+                  <span v-if="new Date(pool.expires_at)-new Date()<7200000" style="color:var(--err);font-weight:700">Expires in {{ Math.round((new Date(pool.expires_at)-new Date())/3600000) }}h!</span>
+                  <span v-else style="color:var(--ok)">Join now</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1412,7 +1428,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       <!-- ── MY REQUESTS ── -->
       <div v-if="tab==='my-requests' && profile">
-        <div class="sect-hd fu"><div><div class="sect-ttl">My Requests</div><div class="sect-sub">{{  myRequests.length  }} total · {{  myActiveReqs.length  }} active</div></div><button @click="showReqModal=true" class="btn btn-p btn-sm"><i class="fas fa-plus"></i>New Request</button></div>
+        <div class="sect-hd fu"><div><div class="sect-ttl">My Requests</div><div class="sect-sub">{{  myRequests.length  }} total · {{  myActiveReqs.length  }} active</div></div><button @click="showReqModal=true" class="btn btn-p btn-sm"><i class="fas fa-plus"></i>New Request</button>
+          <button @click="showRecurringModal=true" class="btn btn-g btn-sm" title="Set up recurring orders"><i class="fas fa-rotate"></i>Recurring</button></div>
         <div v-if="myRequests.length" class="fu fu-1" style="display:flex;gap:var(--s3);flex-wrap:wrap;margin-bottom:var(--s3)">
           <div class="card-sm" style="flex:1;min-width:100px;text-align:center">
             <div style="font-size:18px;font-weight:700;font-family:var(--fm);color:var(--philips)">{{ myActiveReqs.length }}</div>
@@ -1451,6 +1468,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap">
               <span class="badge" :class="r.platform_type==='techmedix'?'b-tm':'b-gd'">{{  r.platform_type==='techmedix'?'TechMedixLink':'GlobalDoor'  }}</span>
               <span class="badge" :class="sBadge(r.status)">{{  fStatus(r.status)  }}</span>
+          <span v-if="r.status==='quoted'&&r.quote_expires_at" class="quote-expiry-badge" :class="quoteExpiryDisplay(r)&&quoteExpiryDisplay(r).urgent?'expiry-urgent':''">
+            <i class="fas fa-clock" style="font-size:8px"></i> {{ quoteExpiryDisplay(r)&&quoteExpiryDisplay(r).label }}
+          </span>
               <span style="font-size:var(--txs);color:var(--tx-3)">{{  fDate(r.created_at)  }}</span>
             </div>
           </div>
@@ -1472,6 +1492,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="req-fin">
             <div class="fin-c"><div class="fin-l">Total</div><div class="fin-v">{{  tzs(r.total_cost)  }}</div></div>
             <div class="fin-c"><div class="fin-l">Paid</div><div class="fin-v paid">{{  tzs(r.deposit_paid)  }}</div></div>
+            <div v-if="arrivalCountdown(r)&&['shipped','in_transit','customs_clearance'].includes(r.status)" style="font-size:10px;color:var(--info);display:flex;align-items:center;gap:4px;margin-bottom:3px;grid-column:1/-1"><i class="fas fa-plane-arrival" style="font-size:9px"></i>{{ arrivalCountdown(r).label }}</div>
             <div class="fin-c"><div class="fin-l">Balance</div><div class="fin-v" :class="(r.balance_due||0)>0?'due':''">{{  tzs(r.balance_due)  }}</div></div>
           </div>
           <!-- Items -->
@@ -1484,6 +1505,13 @@ document.addEventListener('DOMContentLoaded', () => {
             <button v-if="r.status==='quoted'" @click="acceptQuote(r)" class="btn btn-ok btn-sm" style="flex:1;justify-content:center;font-weight:700"><i class="fas fa-check"></i>Accept Quote</button>
             <button v-else-if="(r.balance_due||0)>0" @click="askPayment(r)" class="btn btn-p btn-sm" style="flex:1;justify-content:center;font-weight:700"><i class="fas fa-credit-card"></i>Pay {{ tzs(r.balance_due) }}</button>
             <button v-else-if="r.status==='delivered'" @click="confirmReceipt(r)" class="btn btn-ok btn-sm" style="flex:1;justify-content:center;font-weight:700"><i class="fas fa-box-open"></i>Confirm Receipt</button>
+            <div v-if="r.status==='delivered'&&r.delivery_code" style="margin-top:6px">
+              <div style="font-size:10px;color:var(--tx-3);margin-bottom:4px"><i class="fas fa-key"></i> Enter the 6-digit delivery code</div>
+              <div style="display:flex;gap:var(--s2)">
+                <input type="text" v-model="deliveryCodeInput" class="inp" style="max-width:90px;text-align:center;font-family:var(--fm);font-size:16px;font-weight:700;letter-spacing:0.2em" maxlength="6" placeholder="000000">
+                <button @click="confirmDeliveryWithCode(r,deliveryCodeInput)" class="btn btn-ok btn-sm" :disabled="(deliveryCodeInput||'').length!==6"><i class="fas fa-check"></i>Confirm</button>
+              </div>
+            </div>
             <button v-else-if="r.status==='completed'&&!r.reviewed" @click="openReviewModal(r)" class="btn btn-s btn-sm" style="flex:1;justify-content:center"><i class="fas fa-star"></i>Leave Review</button>
             <button v-if="['completed','delivered','installed'].includes(r.status)" @click="reorderRequest(r)" class="btn btn-g btn-sm btn-sq" title="Reorder — pre-fill same items"><i class="fas fa-rotate-right" style="font-size:11px"></i></button>
             <button v-else @click="openDetailModal(r)" class="btn btn-g btn-sm" style="flex:1;justify-content:center"><i class="fas fa-eye"></i>View Details</button>
@@ -1491,6 +1519,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <button @click="openDetailModal(r)" class="btn btn-g btn-sm btn-sq" title="Details"><i class="fas fa-eye" style="font-size:11px"></i></button>
             <button v-if="['delivered','completed'].includes(r.status)" @click="raiseDispute(r)" class="btn btn-g btn-sm btn-sq" title="Raise a dispute" style="color:var(--warn)"><i class="fas fa-flag" style="font-size:11px"></i></button>
             <button @click="doTrack(r.request_number)" class="btn btn-g btn-sm btn-sq" title="Track order"><i class="fas fa-location-dot" style="font-size:11px"></i></button>
+            <button @click="orderNotesReq=r;orderNotesText=r.order_notes||'';showOrderNotes=true" class="btn btn-g btn-sm btn-sq" title="Add note to order">
+              <i class="fas fa-sticky-note" style="font-size:11px;color:var(--tx-3)"></i>
+              <span v-if="r.order_notes" style="position:absolute;top:-2px;right:-2px;width:6px;height:6px;border-radius:50%;background:var(--ok)"></span>
+            </button>
             <button @click.stop="openMessages(r)" class="btn btn-g btn-sm btn-sq" style="position:relative" title="Messages">
               <i class="fas fa-message" style="font-size:11px"></i>
               <span v-if="unreadMessageCounts[r.id]" class="msg-unread-badge">{{ unreadMessageCounts[r.id] }}</span>
@@ -1573,6 +1605,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
       <!-- ── TRACKING ── -->
       <div v-if="tab==='tracking'">
+        <!-- No active orders empty state -->
+        <div v-if="!trackedReq&&!myActiveReqs.length" class="empty fu fu-2">
+          <div class="empty-ico"><i class="fas fa-location-dot"></i></div>
+          <div class="empty-ttl">No active orders to track</div>
+          <div class="empty-sub">Once you submit a request and it is confirmed, you can track your delivery in real-time here.</div>
+          <button @click="showReqModal=true" class="btn btn-p" style="margin-top:var(--s3)"><i class="fas fa-plus"></i>Submit your first request</button>
+        </div>
+
         <!-- Live delivery map placeholder -->
         <div v-if="trackedReq&&trackedReq.status&&['shipped','in_transit','customs_clearance'].includes(trackedReq.status)" class="delivery-map-card fu fu-1">
           <div class="delivery-map-hd">
@@ -1684,13 +1724,15 @@ document.addEventListener('DOMContentLoaded', () => {
           <table class="tbl">
             <thead><tr><th>Request #</th><th>Method</th><th>Type</th><th>Amount</th><th>Status</th><th>Date</th><th>Reference</th></tr></thead>
             <tbody>
-              <tr v-for="p in payments" :key="p.id" style="cursor:pointer" @click="openDetailModal(allRequests.find(r=>r.id===p.request_id))" :title="'View request details'">
+              <tr v-for="p in payments" :key="p.id">
+                <!-- Row click opens detail -->
                 <td><span class="mono">{{  allRequests.find(r=>r.id===p.request_id)?.request_number||p.request_id?.slice(0,8)  }}</span></td>
                 <td style="text-transform:capitalize">{{  p.payment_method?.replace(/_/g,' ')||'--'  }}</td>
                 <td style="text-transform:capitalize">{{  p.payment_type||'--'  }}</td>
                 <td><span style="font-family:var(--fm);font-size:11px;color:var(--tx-1)">{{  tzs(p.amount)  }}</span></td>
                 <td>
                   <span class="badge" :class="p.status==='completed'?'b-ok':p.status==='pending'?'b-wn':'b-er'">{{  p.status  }}</span>
+                  <button v-if="p.status==='completed'" @click.stop="downloadPaymentReceipt(p,allRequests.find(r=>r.id===p.request_id))" class="btn btn-g btn-xs btn-sq" style="margin-left:4px" title="Download receipt"><i class="fas fa-download" style="font-size:8px"></i></button>
                   <div v-if="p.status==='pending'" style="font-size:9px;color:var(--warn);margin-top:2px"><i class="fas fa-clock" style="font-size:8px"></i> Awaiting confirmation</div>
                 </td>
                 <td style="font-size:var(--txs)">{{  fDate(p.payment_date||p.created_at)  }}</td>
@@ -1996,18 +2038,41 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <!-- Requests table -->
         <div v-if="adminSubTab==='requests'" class="fu fu-2">
-          <div style="display:flex;gap:var(--s2);margin-bottom:var(--s3);flex-wrap:wrap">
+          <div style="display:flex;gap:var(--s2);margin-bottom:var(--s3);flex-wrap:wrap;align-items:center">
+            <button @click="showKanban=!showKanban" class="btn btn-g btn-sm" :class="{active:showKanban}" style="margin-right:auto">
+              <i :class="showKanban?'fas fa-table':'fas fa-columns'"></i>{{ showKanban?'Table view':'Pipeline view' }}
+            </button>
             <input type="text" v-model="adminReqSearch" placeholder="Search request # or buyer name…" class="inp" style="max-width:260px;border-radius:var(--rp)">
             <select v-model="adminReqFilter" class="sel" style="width:140px;border-radius:var(--rp)"><option value="all">All Statuses</option><option v-for="s in statusList" :key="s.val" :value="s.val">{{  s.label  }}</option></select>
             <select v-model="adminPlatFilter" class="sel" style="width:140px;border-radius:var(--rp)"><option value="all">All Platforms</option><option value="techmedix">TechMedixLink</option><option value="globaldoor">GlobalDoor</option></select>
           </div>
-          <div class="tbl-w">
+          <!-- Kanban pipeline view -->
+          <div v-if="showKanban" class="kanban-board">
+            <div v-for="stage in [{v:'pending',l:'Pending',c:'var(--tx-4)'},{v:'quoted',l:'Quoted',c:'var(--warn)'},{v:'deposit_paid',l:'Deposit Paid',c:'var(--philips)'},{v:'sourcing',l:'Sourcing',c:'var(--info)'},{v:'shipped',l:'Shipped',c:'var(--siemens-teal)'},{v:'in_transit',l:'In Transit',c:'var(--ok)'},{v:'delivered',l:'Delivered',c:'#1a8a3a'}]" :key="stage.v" class="kanban-col">
+              <div class="kanban-col-hd" :style="{borderTopColor:stage.c}">
+                <span style="font-weight:700;font-size:11px;color:var(--tx-2)">{{ stage.l }}</span>
+                <span class="nav-chip">{{ filteredAdminReqs.filter(r=>r.status===stage.v).length }}</span>
+              </div>
+              <div v-for="r in filteredAdminReqs.filter(req=>req.status===stage.v).slice(0,8)" :key="r.id" class="kanban-card" @click="openDetailModal(r)">
+                <div style="font-size:10px;font-family:var(--fm);font-weight:700;color:var(--tx-1);margin-bottom:3px">{{ r.request_number }}</div>
+                <div style="font-size:10px;color:var(--tx-3)">{{ adminUsers.find(u=>u.id===r.user_id)?.full_name||'Unknown' }}</div>
+                <div v-if="r.items?.[0]" style="font-size:9px;color:var(--tx-4);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.items[0].product_name }}</div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+                  <span style="font-size:10px;font-family:var(--fm);color:var(--philips);font-weight:700">{{ tzs(r.total_cost||0) }}</span>
+                  <span v-if="atRiskRequests.find(ar=>ar.id===r.id)" style="font-size:8px;color:var(--warn);font-weight:700">⚠ At risk</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tbl-w" v-if="!showKanban">
             <table class="tbl">
               <thead><tr><th>Request #</th><th>Platform</th><th>Buyer</th><th>Status</th><th>Total</th><th>Balance</th><th>Date</th><th>Actions</th></tr></thead>
               <tbody>
                 <tr v-for="r in filteredAdminReqs" :key="r.id">
                   <td>
                     <span class="mono">{{  r.request_number  }}</span>
+                    <span v-if="atRiskRequests.find(ar=>ar.id===r.id)" class="badge" style="background:rgba(196,122,0,0.15);color:var(--warn);font-size:7px;margin-left:3px" title="Quoted 48h+ ago with no response">At risk</span>
                     <span v-if="r.source_type==='manual'||r.source_type==='link'" class="badge b-wn" style="margin-left:4px;font-size:8px"><i class="fas fa-pen" style="font-size:7px"></i>Custom</span>
                   </td>
                   <td><span class="badge" :class="r.platform_type==='techmedix'?'b-tm':'b-gd'" style="font-size:9px">{{  r.platform_type==='techmedix'?'TML':'GD'  }}</span></td>
@@ -2029,7 +2094,12 @@ document.addEventListener('DOMContentLoaded', () => {
                   <td>
                     <div style="display:flex;gap:3px">
                       <button @click="openDetailModal(r)" class="btn btn-g btn-xs btn-sq" title="View"><i class="fas fa-eye" style="font-size:9px"></i></button>
-                      <button @click="openQuoteModal(r)" class="btn btn-info btn-xs btn-sq" title="Quote"><i class="fas fa-file-invoice-dollar" style="font-size:9px"></i></button>
+                      <button v-if="!r.acknowledged_at&&(r.status==='pending'||r.status==='submitted')" @click="acknowledgeRequest(r)" class="btn btn-ok btn-xs" title="Acknowledge — notify buyer"><i class="fas fa-check-double" style="font-size:9px"></i>ACK</button>
+                      <span v-else-if="r.acknowledged_at" class="badge b-ok" style="font-size:8px" title="Acknowledged"><i class="fas fa-check-double" style="font-size:7px"></i></span>
+                      <button @click="quoteReq=r;Object.assign(quoteForm,{item_cost:0,shipping_cost:0,duty_cost:0,service_fee:0});showQuoteModal=true" v-if="r.status==='pending'||r.status==='submitted'" class="btn btn-ok btn-xs btn-sq" title="Send quote"><i class="fas fa-file-invoice-dollar" style="font-size:9px"></i></button>
+                      <button @click="openQuoteModal(r)" v-else class="btn btn-info btn-xs btn-sq" title="Update quote"><i class="fas fa-file-invoice-dollar" style="font-size:9px"></i></button>
+                      <button @click="adminWhatsApp(r)" class="btn btn-g btn-xs btn-sq" title="WhatsApp buyer" style="background:rgba(37,211,102,0.1);border-color:rgba(37,211,102,0.3);color:#1a8a3a"><i class="fab fa-whatsapp" style="font-size:10px"></i></button>
+                      <button v-if="r.status==='shipped'" @click="notifyShipment(r)" class="btn btn-g btn-xs" title="Send shipment notification" style="font-size:9px"><i class="fas fa-plane" style="font-size:9px"></i>Notify</button>
                       <button @click="askPayment(r)" class="btn btn-p btn-xs btn-sq" title="Payment"><i class="fas fa-credit-card" style="font-size:9px"></i></button>
                       <!-- FIX 6: Message button in admin requests -->
                       <button @click.stop="openMessages(r)" class="btn btn-g btn-xs btn-sq" title="Messages" style="position:relative">
@@ -2042,6 +2112,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <tr v-if="!filteredAdminReqs.length"><td colspan="8" style="text-align:center;padding:var(--s6);color:var(--tx-3)">No requests found</td></tr>
               </tbody>
             </table>
+          </div>
           </div>
           <!-- Admin requests pagination -->
           <div v-if="reqTotal > REQ_PER_PAGE" class="pgn">
@@ -2368,6 +2439,36 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </transition>
 
+<!-- CREATE FACILITY MODAL -->
+<transition name="modal">
+  <div v-if="showCreateFacility" class="modal-bg" @click.self="showCreateFacility=false">
+    <div class="modal modal-sm">
+      <div class="modal-hd">
+        <div><div class="modal-ttl">Create Facility Account</div><div class="modal-sub">Set up your organisation on TechMedixLink</div></div>
+        <button class="modal-x" @click="showCreateFacility=false"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="facility-type-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s2);margin-bottom:var(--s3)">
+          <div v-for="ft in [{v:'hospital',i:'fas fa-hospital',l:'Hospital'},{v:'clinic',i:'fas fa-stethoscope',l:'Clinic'},{v:'dispensary',i:'fas fa-pills',l:'Dispensary'},{v:'lab',i:'fas fa-flask',l:'Laboratory'},{v:'pharmacy',i:'fas fa-prescription-bottle',l:'Pharmacy'},{v:'ngo',i:'fas fa-hand-holding-heart',l:'NGO'}]"
+            :key="ft.v" class="req-type-card" :class="{active:facilityForm.type===ft.v}" @click="facilityForm.type=ft.v" style="min-height:70px">
+            <div class="req-type-icon" :style="facilityForm.type===ft.v?'background:var(--philips-l);color:var(--philips)':'background:var(--bg-2);color:var(--tx-4)'"><i :class="ft.i"></i></div>
+            <div class="req-type-label">{{ ft.l }}</div>
+          </div>
+        </div>
+        <div class="fg"><label class="lbl req">Facility name</label><input type="text" v-model="facilityForm.name" class="inp" placeholder="e.g. Muhimbili National Hospital"></div>
+        <div class="fr2">
+          <div class="fg"><label class="lbl req">Region</label><input type="text" v-model="facilityForm.region" class="inp" placeholder="e.g. Dar es Salaam"></div>
+          <div class="fg"><label class="lbl">District</label><input type="text" v-model="facilityForm.district" class="inp" placeholder="e.g. Ilala"></div>
+        </div>
+      </div>
+      <div class="modal-ft">
+        <button @click="showCreateFacility=false" class="btn btn-g">Cancel</button>
+        <button @click="createFacility(facilityForm.name,facilityForm.type,facilityForm.region);showCreateFacility=false" class="btn btn-p" :disabled="!facilityForm.name||!facilityForm.type||!facilityForm.region"><i class="fas fa-hospital"></i>Create Facility</button>
+      </div>
+    </div>
+  </div>
+</transition>
+
 <!-- IMAGE LIGHTBOX -->
 <transition name="fade">
   <div v-if="showLightbox" class="lightbox-bg" @click="showLightbox=false">
@@ -2389,6 +2490,11 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="modal req-modal">
 
       <!-- Header with progress indicator -->
+      <div v-if="showDraftBanner" class="info-strip wn" style="margin:0;border-radius:0;padding:8px 20px;border-bottom:1px solid var(--ln-1)">
+        <i class="fas fa-history" style="color:var(--warn);flex-shrink:0"></i>
+        <span style="font-size:var(--txs);color:var(--warn);flex:1">Draft restored from your last session</span>
+        <button @click="clearDraft()" style="font-size:10px;color:var(--warn);cursor:pointer;background:none;border:none;font-weight:700">Clear</button>
+      </div>
       <div class="req-modal-hd">
         <div style="display:flex;align-items:center;gap:var(--s3);flex:1;min-width:0">
           <div style="width:36px;height:36px;border-radius:var(--r2);background:var(--philips);display:flex;align-items:center;justify-content:center;flex-shrink:0">
@@ -2670,6 +2776,17 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
 
             <!-- NOTES -->
+            <!-- Discount code -->
+            <div class="fg" style="display:flex;gap:var(--s2);align-items:flex-end">
+              <div style="flex:1"><label class="lbl">Discount code <span style="color:var(--tx-4);font-weight:400">(optional)</span></label>
+                <input type="text" v-model="discountCode" class="inp" placeholder="e.g. MUHIMBILI10" style="text-transform:uppercase">
+              </div>
+              <button @click="applyDiscountCode(discountCode,reqCostEstimate.total)" class="btn btn-s btn-sm" :disabled="!discountCode"><i class="fas fa-tag"></i>Apply</button>
+            </div>
+            <div v-if="discountApplied" class="info-strip ok" style="margin-top:var(--s2)">
+              <i class="fas fa-check-circle" style="color:var(--ok);flex-shrink:0"></i>
+              <div style="font-size:var(--txs);color:var(--ok)">Code applied — saving {{ tzs(discountApplied.saving) }}</div>
+            </div>
             <!-- Budget code + insurance -->
             <div class="fr2">
               <div class="fg"><label class="lbl">Budget / Vote code <span style="color:var(--tx-4);font-weight:400">(optional)</span></label>
@@ -2854,6 +2971,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
       <div class="modal-body">
+        <div v-if="isAdmin&&detectDuplicateRequest(detailReq,allRequests)" class="info-strip wn" style="margin-bottom:var(--s3)"><i class="fas fa-copy" style="color:var(--warn);flex-shrink:0"></i><div style="font-size:var(--txs);color:var(--warn)"><strong>Possible duplicate:</strong> {{ detectDuplicateRequest(detailReq,allRequests)?.request_number }}</div></div>
         <!-- Printable quote header (admin only) -->
         <div v-if="isAdmin" class="print-quote" style="padding:20px;background:white;color:black;margin-bottom:20px">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #002a20">
@@ -4191,7 +4309,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
 <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script type="module" src="js/main.js?v28"></script>
+<script type="module" src="js/main.js?v30"></script>
 <script>
 // Register service worker for cache control
 if ('serviceWorker' in navigator) {
@@ -4246,6 +4364,83 @@ if ('serviceWorker' in navigator) {
     <i class="fas fa-sign-in-alt"></i><span>Sign In</span>
   </div>
 </div>
+
+
+<!-- ORDER NOTES MODAL -->
+<transition name="modal">
+  <div v-if="showOrderNotes" class="modal-bg" @click.self="showOrderNotes=false">
+    <div class="modal modal-sm">
+      <div class="modal-hd"><div><div class="modal-ttl">Order Note</div><div class="modal-sub">{{ orderNotesReq?.request_number }}</div></div><button class="modal-x" @click="showOrderNotes=false"><i class="fas fa-times"></i></button></div>
+      <div class="modal-body">
+        <div class="info-strip in"><i class="fas fa-info-circle" style="color:var(--info);flex-shrink:0"></i><div style="font-size:var(--txs);color:var(--info)">Notes are visible to you and TechMedixLink admin. Use for changes, preferences, or additional details.</div></div>
+        <div class="fg" style="margin-top:var(--s3)"><textarea v-model="orderNotesText" class="tex" style="min-height:100px" placeholder="E.g. Please ensure CE marked, alternate brand acceptable, deliver to main store manager..."></textarea></div>
+      </div>
+      <div class="modal-ft"><button @click="showOrderNotes=false" class="btn btn-g">Cancel</button><button @click="saveOrderNotes(orderNotesReq.id,orderNotesText)" class="btn btn-p"><i class="fas fa-save"></i>Save Note</button></div>
+    </div>
+  </div>
+</transition>
+
+<!-- BUYER INTELLIGENCE MODAL -->
+<transition name="modal">
+  <div v-if="showBuyerIntel&&buyerIntel" class="modal-bg" @click.self="showBuyerIntel=false">
+    <div class="modal">
+      <div class="modal-hd"><div class="modal-ttl">Buyer Intelligence</div><button class="modal-x" @click="showBuyerIntel=false"><i class="fas fa-times"></i></button></div>
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s3);margin-bottom:var(--s4)">
+          <div class="card-sm" style="text-align:center"><div style="font-size:22px;font-weight:800;font-family:var(--fm);color:var(--philips)">{{ buyerIntel.totalRequests }}</div><div style="font-size:10px;color:var(--tx-3)">Total requests</div></div>
+          <div class="card-sm" style="text-align:center"><div style="font-size:22px;font-weight:800;font-family:var(--fm);color:var(--ok)">{{ buyerIntel.completed }}</div><div style="font-size:10px;color:var(--tx-3)">Completed</div></div>
+          <div class="card-sm" style="text-align:center"><div style="font-size:16px;font-weight:800;font-family:var(--fm);color:var(--philips)">{{ tzs(buyerIntel.avgOrderValue) }}</div><div style="font-size:10px;color:var(--tx-3)">Avg order</div></div>
+        </div>
+        <div style="font-size:10px;font-weight:700;color:var(--tx-4);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:var(--s2)">Recent activity</div>
+        <div v-for="r in buyerIntel.timeline" :key="r.id" style="display:flex;align-items:center;gap:var(--s2);padding:6px 0;border-bottom:1px solid var(--ln-0)">
+          <span class="badge" :class="sBadge(r.status)" style="font-size:8px;flex-shrink:0">{{ fStatus(r.status) }}</span>
+          <span style="font-size:11px;font-family:var(--fm);color:var(--tx-1)">{{ tzs(r.total_cost||0) }}</span>
+          <span style="font-size:10px;color:var(--tx-4);margin-left:auto">{{ fDate(r.created_at) }}</span>
+        </div>
+        <div style="margin-top:var(--s3);font-size:10px;color:var(--tx-4)">Total spent: <strong style="color:var(--tx-1)">{{ tzs(buyerIntel.totalSpent) }}</strong> · Cancelled: {{ buyerIntel.cancelled }}</div>
+      </div>
+    </div>
+  </div>
+</transition>
+
+<!-- HEALTH DASHBOARD MODAL -->
+<transition name="modal">
+  <div v-if="showHealthDash&&healthStats" class="modal-bg" @click.self="showHealthDash=false">
+    <div class="modal modal-sm">
+      <div class="modal-hd"><div class="modal-ttl">Platform Health</div><button class="modal-x" @click="showHealthDash=false"><i class="fas fa-times"></i></button></div>
+      <div class="modal-body">
+        <div v-for="row in [{l:'DB latency',v:healthStats.dbLatency+'ms',ok:healthStats.dbLatency<500},{l:'Active users',v:healthStats.userCount},{l:'Active products',v:healthStats.prodCount},{l:'Total requests',v:healthStats.reqCount},{l:'Platform version',v:healthStats.version},{l:'Checked at',v:new Date(healthStats.checkedAt).toLocaleTimeString()}]" :key="row.l" class="pmt-inst-row" style="font-size:12px;padding:6px 0;border-bottom:1px solid var(--ln-0)">
+          <span style="color:var(--tx-3)">{{ row.l }}</span>
+          <strong :style="row.ok===false?'color:var(--err)':row.ok?'color:var(--ok)':''">{{ row.v }}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</transition>
+
+<!-- RECURRING ORDER MODAL -->
+<transition name="modal">
+  <div v-if="showRecurringModal" class="modal-bg" @click.self="showRecurringModal=false">
+    <div class="modal modal-sm">
+      <div class="modal-hd"><div><div class="modal-ttl">Set Recurring Order</div><div class="modal-sub">Auto-submit this request on a schedule</div></div><button class="modal-x" @click="showRecurringModal=false"><i class="fas fa-times"></i></button></div>
+      <div class="modal-body">
+        <div class="fg"><label class="lbl req">Product / Item</label><input type="text" v-model="recurringForm.product_name" class="inp" placeholder="e.g. Surgical gloves size M x100"></div>
+        <div class="fr2">
+          <div class="fg"><label class="lbl req">Quantity</label><input type="number" v-model.number="recurringForm.quantity" class="inp" min="1"></div>
+          <div class="fg"><label class="lbl req">Frequency</label>
+            <select v-model="recurringForm.frequency" class="sel">
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+            </select>
+          </div>
+        </div>
+        <div class="info-strip in" style="margin-top:var(--s2)"><i class="fas fa-info-circle" style="color:var(--info);flex-shrink:0"></i><div style="font-size:var(--txs);color:var(--info)">The platform will automatically create and submit this request on schedule. You can cancel anytime.</div></div>
+      </div>
+      <div class="modal-ft"><button @click="showRecurringModal=false" class="btn btn-g">Cancel</button><button @click="createRecurringOrder" class="btn btn-p" :disabled="!recurringForm.product_name"><i class="fas fa-rotate"></i>Set Recurring</button></div>
+    </div>
+  </div>
+</transition>
 
 </body>
 </html>
