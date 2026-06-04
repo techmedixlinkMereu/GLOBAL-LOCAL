@@ -294,8 +294,6 @@ export const showSendQuoteModal = ref(false);
 export const sendQuoteForm = reactive({ item_cost:0, shipping_cost:0, duty_cost:0, service_fee:0, quoteReqId:null });
 
 export const facilityForm = reactive({ name:'', type:'hospital', region:'', district:'' });
-export const quoteReq    = ref(null);
-export const quoteForm   = reactive({ item_cost:0, shipping_cost:0, duty_cost:0, service_fee:0 });
 
 // ── 60-feature additions ─────────────────────────────────────────
 export const announcement        = ref(null);
