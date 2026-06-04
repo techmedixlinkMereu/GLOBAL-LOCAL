@@ -2011,7 +2011,7 @@ export async function submitProductRequest() {
     });
     newProductRequest.value = '';
     await loadProductRequests();
-    toast('ok', 'Request submitted!', 'We'll source this if it gets enough votes');
+    toast("ok", "Request submitted!", "We will source this if it gets enough votes");
   } catch {}
 }
 
@@ -2021,7 +2021,7 @@ export async function subscribeNewsletter() {
   try {
     await sb.from('newsletter_signups').insert({ email: newsletterEmail.value });
     newsletterEmail.value = '';
-    toast('ok', 'Subscribed!', 'You'll hear from us when new equipment arrives');
+    toast("ok", "Subscribed!", "You will hear from us when new equipment arrives");
   } catch {}
 }
 
