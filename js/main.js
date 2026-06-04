@@ -14,6 +14,11 @@ const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
 const app = createApp({
   setup() {
 
+    // At-risk requests (quoted > 48h not accepted)
+    const atRiskRequests = computed(() => {
+      return A.getAtRiskRequests(S.allRequests.value);
+    });
+
     // Search autocomplete suggestions
     const searchSuggestions = computed(() => {
       if (!S.globalSearch.value || S.globalSearch.value.length < 2) return [];
@@ -281,6 +286,7 @@ const app = createApp({
 
     function goTab(t) {
       A.goTab(t, A.loadAnalytics, () => A.loadSellerAnalytics(myListings.value));
+      if (t === 'facility') A.loadMyFacility();
     }
 
     function saveReq() { return A.saveReq(selectedProduct.value, reqCostEstimate.value); }
