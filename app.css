@@ -3,7 +3,7 @@
    Bree Serif (Siemens Healthineers exact display font)
    Nunito Sans (Philips spirit — humanist, inviting, legible)
    JetBrains Mono (data precision)
-═══════════════════════════════════════════════════════════════════ */   
+═══════════════════════════════════════════════════════════════════ */
 :root {
   --philips:#0066a1;   --philips-d:#004f7c;   --philips-l:#e5f0f8;
   --siemens:#00a8b0;   --siemens-d:#007d83;   --siemens-l:#e5f6f7;
@@ -3332,4 +3332,116 @@ body.modal-open { overflow: hidden; }
   .delivery-map-node { display: none; }
   .delivery-map-node.delivery-map-origin,
   .delivery-map-node.delivery-map-dest { display: flex; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ALL 60 FEATURES — CSS
+═══════════════════════════════════════════════════════════════════ */
+
+/* ── Announcement banner ── */
+.announcement-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: 8px var(--s5);
+  font-size: 12px;
+  font-weight: 500;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.ann-info    { background: var(--info-bg); color: var(--info); border-bottom: 1px solid rgba(0,102,161,0.2); }
+.ann-warning { background: var(--warn-bg); color: var(--warn); border-bottom: 1px solid rgba(196,122,0,0.2); }
+.ann-success { background: var(--ok-bg);   color: var(--ok);   border-bottom: 1px solid rgba(26,122,74,0.2); }
+.ann-urgent  { background: var(--err-bg);  color: var(--err);  border-bottom: 1px solid rgba(192,57,43,0.2); }
+.ann-close { background: none; border: none; cursor: pointer; color: inherit; opacity: 0.5; font-size: 12px; flex-shrink: 0; }
+.ann-close:hover { opacity: 1; }
+.ann-link { color: inherit; font-weight: 700; text-decoration: underline; white-space: nowrap; }
+
+/* ── Quote expiry badge ── */
+.quote-expiry-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--tx-3);
+  background: var(--bg-2);
+  padding: 2px 7px;
+  border-radius: 99px;
+  border: 1px solid var(--ln-2);
+}
+.expiry-urgent {
+  color: var(--warn) !important;
+  background: var(--warn-bg) !important;
+  border-color: rgba(196,122,0,0.3) !important;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+/* ── Delivery code block ── */
+.delivery-code-block {
+  margin-top: 6px;
+  padding: var(--s2) var(--s3);
+  background: var(--ok-bg);
+  border: 1px solid rgba(26,122,74,0.2);
+  border-radius: var(--r2);
+}
+
+/* ── Kanban board ── */
+.kanban-board {
+  display: flex;
+  gap: var(--s3);
+  overflow-x: auto;
+  padding-bottom: var(--s3);
+  scrollbar-width: thin;
+  min-height: 400px;
+  align-items: flex-start;
+}
+.kanban-col {
+  flex: 0 0 200px;
+  background: var(--bg-1);
+  border-radius: var(--r2);
+  overflow: hidden;
+}
+.kanban-col-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-2);
+  border-top: 3px solid var(--ln-2);
+  margin-bottom: 6px;
+}
+.kanban-card {
+  margin: 0 8px 6px;
+  padding: 8px 10px;
+  background: var(--bg-0);
+  border: 1px solid var(--ln-1);
+  border-radius: var(--r2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.kanban-card:hover { border-color: var(--philips); box-shadow: var(--sh2); transform: translateY(-1px); }
+
+/* ── Bi-confirmation system ── */
+.ack-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ok);
+  background: var(--ok-bg);
+  padding: 2px 6px;
+  border-radius: 99px;
+}
+
+/* ── Currency toggle ── */
+.currency-toggle select { cursor: pointer; }
+
+/* ── Mobile kanban ── */
+@media (max-width: 768px) {
+  .kanban-board { gap: var(--s2); }
+  .kanban-col { flex: 0 0 160px; }
 }
