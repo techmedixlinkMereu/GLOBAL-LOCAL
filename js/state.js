@@ -138,7 +138,8 @@ export const rF = reactive({
   custom_name: '', custom_desc: '', source_url: '',
   budget_code: '', insurance_added: false, approval_email: '',
   brief_problem: '', brief_setting: '', brief_volume: 'medium',
-  brief_power: 'stable', brief_budget_min: 0, brief_budget_max: 0
+  brief_power: 'stable', brief_budget_min: 0, brief_budget_max: 0,
+  requires_installation: false, is_available_locally: false
 });
 
 export const uF = reactive({
@@ -288,3 +289,39 @@ export const inviteEmail        = ref('');
 export const inviteRole         = ref('requester');
 export const productBenchmark   = ref(null);
 export const benchmarkPct       = ref(50);
+
+export const showSendQuoteModal = ref(false);
+export const sendQuoteForm = reactive({ item_cost:0, shipping_cost:0, duty_cost:0, service_fee:0, quoteReqId:null });
+
+export const facilityForm = reactive({ name:'', type:'hospital', region:'', district:'' });
+export const quoteReq    = ref(null);
+export const quoteForm   = reactive({ item_cost:0, shipping_cost:0, duty_cost:0, service_fee:0 });
+
+// ── 60-feature additions ─────────────────────────────────────────
+export const announcement        = ref(null);
+export const showKanban          = ref(false);
+export const activeCurrency      = ref('TZS');
+export const currencyRates       = reactive({ TZS: 1, USD: 0.00037, EUR: 0.00034, KES: 0.048 });
+export const showHealthDash      = ref(false);
+export const healthStats         = ref(null);
+export const buyerIntel          = ref(null);
+export const showBuyerIntel      = ref(false);
+export const showRecurringModal  = ref(false);
+export const recurringForm       = reactive({ product_id:'', product_name:'', quantity:1, frequency:'monthly' });
+export const recurringOrders     = ref([]);
+export const showDiscount        = ref(false);
+export const discountCode        = ref('');
+export const discountApplied     = ref(null);
+export const showDraftBanner     = ref(false);
+export const showPaymentReceipt  = ref(false);
+export const receiptPayment      = ref(null);
+export const showUploadSlip      = ref(false);
+export const uploadSlipPayment   = ref(null);
+export const orderNotesReq       = ref(null);
+export const orderNotesText      = ref('');
+export const showOrderNotes      = ref(false);
+export const referralData        = ref(null);
+export const warrantyItems       = ref([]);
+export const atRiskRequests      = computed ? null : null; // computed in main.js
+
+export const deliveryCodeInput = ref('');
