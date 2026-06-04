@@ -320,6 +320,5 @@ export const orderNotesText      = ref('');
 export const showOrderNotes      = ref(false);
 export const referralData        = ref(null);
 export const warrantyItems       = ref([]);
-export const atRiskRequests      = computed ? null : null; // computed in main.js
 
 export const deliveryCodeInput = ref('');
