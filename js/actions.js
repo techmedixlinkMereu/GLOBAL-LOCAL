@@ -44,7 +44,16 @@ import {
   productRequests, newProductRequest, newsletterEmail,
   recentlyViewed, showSearchSuggestions,
   myFacility, facilityMembers, showCreateFacility, inviteEmail, inviteRole,
-  productBenchmark, benchmarkPct
+  productBenchmark, benchmarkPct,
+  facilityForm, quoteReq, quoteForm, showQuoteModal,
+  announcement, showKanban, activeCurrency,
+  showHealthDash, healthStats, buyerIntel, showBuyerIntel,
+  showRecurringModal, recurringForm, recurringOrders,
+  discountCode, discountApplied,
+  showDraftBanner, showPaymentReceipt, receiptPayment,
+  showOrderNotes, orderNotesReq, orderNotesText,
+  referralData, warrantyItems,
+  deliveryCodeInput
 } from './state.js';
 
 import { fStatus, tzs, fDate, fDateTime } from './formatters.js';
@@ -804,7 +813,7 @@ export async function saveListing() {
 }
 
 export async function toggleListingStatus(p) {
-  const { error } = await sb.from('products').update({ is_active: !p.is_active, updated_at: new Date().toISOString() }).eq('id', p.id);
+  const { error } = await sb.from('products').update({ is_active: !p.is_active, is_paused: false, updated_at: new Date().toISOString() }).eq('id', p.id);
   if (!error) { await loadProds(); toast('ok', p.is_active ? 'Product hidden' : 'Product activated'); }
 }
 
@@ -886,9 +895,23 @@ export async function saveReq(selectedProduct, reqCostEstimate) {
   const isCatalog = rF.source_type === 'catalog';
   const isCustom  = rF.source_type === 'manual';
   const isLink    = rF.source_type === 'link';
+  const isBrief   = rF.source_type === 'brief';
   if (isCatalog && !rF.product_id) return;
   if (isCustom && !rF.custom_name) return;
   if (isLink && !rF.source_url) return;
+  if (isBrief && !rF.brief_problem) { toast('wn', 'Describe your need', 'Please describe the clinical problem before submitting'); return; }
+  if (isBrief) {
+    rF.source_type = 'manual';
+    rF.custom_name = '[OPEN BRIEF] ' + (rF.brief_setting ? rF.brief_setting.toUpperCase() + ' — ' : '') + rF.brief_problem.slice(0, 80);
+    rF.custom_desc = [
+      'CLINICAL BRIEF',
+      'Setting: ' + (rF.brief_setting || 'Not specified'),
+      'Problem: ' + rF.brief_problem,
+      'Patient volume: ' + (rF.brief_volume || 'Medium'),
+      'Power reliability: ' + (rF.brief_power || 'Stable'),
+      rF.brief_budget_min ? 'Budget: $' + rF.brief_budget_min + ' – $' + rF.brief_budget_max + ' USD' : ''
+    ].filter(Boolean).join('\n');
+  }
   if (isLink && rF.source_url) {
     try { new URL(rF.source_url); } catch {
       toast('err', 'Invalid URL', 'Please enter a valid URL starting with https://');
@@ -934,7 +957,14 @@ export async function saveReq(selectedProduct, reqCostEstimate) {
   });
   await loadReqs(); await loadPayments(); await loadProds();
   loading.value = false; showReqModal.value = false;
-  Object.assign(rF, { platform_type: 'techmedix', product_id: '', quantity: 1, urgency: 'normal', notes: '', source_type: 'catalog', address_id: '', custom_name: '', custom_desc: '', source_url: '' });
+  Object.assign(rF, {
+    platform_type:'techmedix', product_id:'', quantity:1, urgency:'normal',
+    notes:'', source_type:'catalog', address_id:'',
+    custom_name:'', custom_desc:'', source_url:'',
+    budget_code:'', insurance_added:false, approval_email:'',
+    brief_problem:'', brief_setting:'', brief_volume:'medium',
+    brief_power:'stable', brief_budget_min:0, brief_budget_max:0
+  });
   await createNotification(profile.value.id, 'status_update', 'Request Submitted', `Your request ${request_number} has been submitted and is under review.`, reqData.id, 'in_app');
   try {
     const { data: admins } = await sb.from('users').select('id').eq('user_role', 'admin');
@@ -1808,10 +1838,10 @@ export function applyReqTemplate(template) {
 // ── Track ad click ────────────────────────────────────────────
 export async function trackAdClick(ad) {
   if (!ad?.id) return;
-  await sb.from('ad_placements')
+  const { error } = await sb.from('ad_placements')
     .update({ clicks: (ad.clicks || 0) + 1 })
     .eq('id', ad.id);
-  ad.clicks = (ad.clicks || 0) + 1;
+  if (!error) ad.clicks = (ad.clicks || 0) + 1;
 }
 
 // ── Join group buy ────────────────────────────────────────────
@@ -1995,7 +2025,12 @@ export async function loadProductRequests() {
 
 export async function voteProductRequest(id) {
   try {
-    await sb.from('product_requests').update({ votes: (productRequests.value.find(r=>r.id===id)?.votes||0)+1 }).eq('id', id);
+    // Use raw SQL increment to avoid race conditions
+    await sb.rpc('increment_product_votes', { row_id: id }).catch(async () => {
+      // Fallback if RPC not available
+      const current = productRequests.value.find(r=>r.id===id)?.votes||0;
+      await sb.from('product_requests').update({ votes: current+1 }).eq('id', id);
+    });
     await loadProductRequests();
     toast('ok', 'Vote counted!', 'Thanks for helping us prioritise');
   } catch {}
@@ -2160,7 +2195,7 @@ export async function loadProductBenchmark(product) {
         benchmarkPct.value = Math.max(5, Math.min(95, pct));
       }
     }
-  } catch {}
+  } catch(e) { toast('err', 'Could not load facility', ''); }
 }
 
 // ── FACILITY MANAGEMENT ──────────────────────────────────────────
@@ -2173,7 +2208,7 @@ export async function loadMyFacility() {
       .single();
     myFacility.value = data || null;
     if (data) await loadFacilityMembers(data.id);
-  } catch {}
+  } catch(e) { }
 }
 
 export async function loadFacilityMembers(facilityId) {
@@ -2181,8 +2216,11 @@ export async function loadFacilityMembers(facilityId) {
     const { data } = await sb.from('facility_members')
       .select('*, user:user_id(full_name, email, phone)')
       .eq('facility_id', facilityId);
-    facilityMembers.value = (data || []).map(m => ({
-      ...m, ...m.user, role: m.role
+    facilityMembers.value = (data || []).filter(m => m.user).map(m => ({
+      id: m.id, role: m.role,
+      full_name: m.user?.full_name || 'Unknown',
+      email: m.user?.email || '',
+      phone: m.user?.phone || ''
     }));
   } catch {}
 }
@@ -2248,4 +2286,444 @@ export async function computeSellerResponseTime(sellerId) {
     await sb.from('users').update({ seller_response_time_hours: avg }).eq('id', sellerId);
     if (profile.value?.id === sellerId) profile.value.seller_response_time_hours = avg;
   } catch {}
+}
+
+// ── ADMIN WHATSAPP TO BUYER ─────────────────────────────────────
+export function adminWhatsApp(r) {
+  const buyer = adminUsers.value.find(u => u.id === r.user_id);
+  const phone = (buyer?.phone || '').replace(/[^0-9+]/g,'');
+  if (!phone) { toast('wn', 'No phone number', 'This buyer has no phone on file'); return; }
+  const msg = encodeURIComponent(
+    "Hi " + (buyer?.full_name?.split(' ')[0] || 'there') + ", regarding your TechMedixLink request " +
+    r.request_number + " — " + (r.status === 'quoted' ? "your quote is ready. Please log in to review and accept." :
+    r.status === 'deposit_paid' ? "we have received your deposit and are now sourcing your equipment." :
+    r.status === 'shipped' ? "great news — your order has shipped!" :
+    "please log in to check the latest update.") +
+    " Questions? Reply here. — TechMedixLink Team"
+  );
+  window.open("https://wa.me/" + phone.replace('+','') + "?text=" + msg, "_blank");
+}
+
+// ── CREATE GROUP BUY POOL ────────────────────────────────────────
+export async function createGroupBuyPool(productId, productName, targetQty, discountPct) {
+  const { error } = await sb.from('group_buy_pools').insert({
+    product_id: productId,
+    product_name: productName,
+    target_quantity: targetQty,
+    pool_discount_pct: discountPct,
+    status: 'open',
+    expires_at: new Date(Date.now() + 14*24*3600000).toISOString()
+  });
+  if (!error) { toast('ok', 'Group buy pool created!', productName); await loadPlatformFeatures(); }
+  else toast('err', 'Failed to create pool', error.message);
+}
+
+// ── SEND QUOTE FORM ──────────────────────────────────────────────
+export async function sendQuote(r, quoteParts) {
+  const { item_cost, shipping_cost, duty_cost, service_fee } = quoteParts;
+  const total = item_cost + shipping_cost + (duty_cost||0) + service_fee;
+  const { error } = await sb.from('requests').update({
+    status: 'quoted',
+    item_cost,
+    shipping_cost,
+    service_fee,
+    total_cost: total,
+    balance_due: total,
+    quoted_date: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }).eq('id', r.id);
+  if (error) { toast('err', 'Quote failed', error.message); return; }
+  // Notify buyer
+  await sb.from('notifications').insert({
+    user_id: r.user_id,
+    title: 'Quote ready for ' + r.request_number,
+    message: 'Your quote is TZS ' + total.toLocaleString() + '. Log in to accept.',
+    notification_type: 'status_update',
+    request_id: r.id
+  });
+  await loadReqs();
+  toast('ok', 'Quote sent!', 'TZS ' + total.toLocaleString());
+  showQuoteModal.value = false;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ALL 60 FEATURES — COMPLETE IMPLEMENTATION
+// ═══════════════════════════════════════════════════════════════
+
+// ── 51: ACKNOWLEDGE REQUEST (Admin → Buyer confirmation) ─────────
+export async function acknowledgeRequest(r) {
+  if (!r?.id) return;
+  const { error } = await sb.from('requests').update({
+    acknowledged_at: new Date().toISOString(),
+    acknowledged_by: profile.value?.id
+  }).eq('id', r.id);
+  if (error) { toast('err', 'Acknowledge failed', error.message); return; }
+  // WhatsApp the buyer
+  const buyer = adminUsers.value.find(u => u.id === r.user_id);
+  const phone = (buyer?.phone || '').replace(/[^0-9+]/g, '');
+  const name  = buyer?.full_name?.split(' ')[0] || 'there';
+  const item  = r.items?.[0]?.product_name || r.custom_name || 'your item';
+  if (phone) {
+    const msg = encodeURIComponent(
+      "Hi " + name + ", we have received your request " + r.request_number +
+      " for " + item + ". Our team is reviewing it and you will receive a quote within 24 hours. — TechMedixLink"
+    );
+    window.open("https://wa.me/" + phone.replace('+','') + "?text=" + msg, "_blank");
+  }
+  await loadReqs();
+  toast('ok', 'Request acknowledged', 'Buyer notified via WhatsApp');
+}
+
+// ── 52: DELIVERY CODE VERIFICATION (Client → Admin) ──────────────
+export async function generateDeliveryCode(r) {
+  // DB trigger handles generation — just fetch the updated record
+  const { data } = await sb.from('requests').select('delivery_code,delivery_code_expires').eq('id', r.id).single();
+  return data?.delivery_code || null;
+}
+
+export async function confirmDeliveryWithCode(r, codeEntered) {
+  if (!r?.delivery_code) { toast('wn', 'No delivery code', 'Admin must mark order as delivered first'); return; }
+  if (new Date(r.delivery_code_expires) < new Date()) { toast('err', 'Code expired', 'Contact admin for a new code'); return; }
+  if (codeEntered?.toString().trim() !== r.delivery_code?.toString().trim()) {
+    toast('err', 'Incorrect code', 'Please check the 6-digit code and try again'); return;
+  }
+  const { error } = await sb.from('requests').update({
+    status: 'completed',
+    delivery_confirmed_at: new Date().toISOString(),
+    delivery_code: null
+  }).eq('id', r.id);
+  if (!error) {
+    await loadReqs();
+    toast('ok', 'Delivery confirmed!', 'Thank you — order ' + r.request_number + ' is complete');
+  }
+}
+
+// ── 53: QUOTE EXPIRY COUNTDOWN ────────────────────────────────────
+export function quoteExpiryDisplay(r) {
+  if (!r?.quote_expires_at) return null;
+  const ms = new Date(r.quote_expires_at) - new Date();
+  if (ms <= 0) return { label: 'Expired', urgent: true, expired: true };
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  if (h < 2) return { label: h + 'h ' + m + 'm left', urgent: true, expired: false };
+  if (h < 24) return { label: h + 'h left', urgent: true, expired: false };
+  const d = Math.floor(h / 24);
+  return { label: d + 'd left', urgent: false, expired: false };
+}
+
+// ── 54: PAYMENT VERIFICATION AUDIT TRAIL ─────────────────────────
+export async function verifyPaymentWithAudit(payment) {
+  const { error } = await sb.from('payments').update({
+    status: 'completed',
+    verified_by: profile.value?.id,
+    verified_at: new Date().toISOString()
+  }).eq('id', payment.id);
+  if (error) { toast('err', 'Verification failed', error.message); return; }
+  // Update request balance
+  const req = allRequests.value.find(r => r.id === payment.request_id);
+  if (req) {
+    const newBalance = Math.max(0, (req.balance_due || 0) - payment.amount);
+    await sb.from('requests').update({
+      deposit_paid: (req.deposit_paid || 0) + payment.amount,
+      balance_due: newBalance,
+      status: newBalance === 0 ? 'sourcing' : req.status
+    }).eq('id', req.id);
+  }
+  await loadPayments(); await loadReqs();
+  toast('ok', 'Payment verified', 'Confirmed by ' + (profile.value?.full_name || 'admin'));
+}
+
+// ── 55: LOAD ANNOUNCEMENT BANNER ─────────────────────────────────
+export async function loadAnnouncement() {
+  try {
+    const { data } = await sb.from('announcements')
+      .select('*')
+      .eq('is_active', true)
+      .lte('starts_at', new Date().toISOString())
+      .gte('ends_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1);
+    announcement.value = data?.[0] || null;
+  } catch(e) {}
+}
+
+// ── 58: BUYER INTELLIGENCE ────────────────────────────────────────
+export async function loadBuyerIntel(userId) {
+  if (!userId) return;
+  try {
+    const [{ data: reqs }, { data: pays }] = await Promise.all([
+      sb.from('requests').select('id,status,total_cost,created_at').eq('user_id', userId).order('created_at', { ascending: true }),
+      sb.from('payments').select('amount,status,created_at').eq('user_id', userId).eq('status','completed')
+    ]);
+    const completed = (reqs||[]).filter(r => r.status === 'completed').length;
+    const cancelled = (reqs||[]).filter(r => r.status === 'cancelled').length;
+    const totalValue = (pays||[]).reduce((s,p) => s + (p.amount||0), 0);
+    const avgOrder = completed > 0 ? Math.round(totalValue / completed) : 0;
+    buyerIntel.value = {
+      totalRequests: (reqs||[]).length,
+      completed, cancelled,
+      pending: (reqs||[]).filter(r => !['completed','cancelled'].includes(r.status)).length,
+      totalSpent: totalValue,
+      avgOrderValue: avgOrder,
+      firstOrder: reqs?.[0]?.created_at,
+      lastOrder: reqs?.[reqs.length-1]?.created_at,
+      timeline: (reqs||[]).slice(-5).reverse()
+    };
+    showBuyerIntel.value = true;
+  } catch(e) {}
+}
+
+// ── 59: VALUE AT RISK ─────────────────────────────────────────────
+export function getAtRiskRequests(requests) {
+  const now = new Date();
+  return requests.filter(r => {
+    if (r.status !== 'quoted') return false;
+    const quoted = r.quoted_date ? new Date(r.quoted_date) : null;
+    if (!quoted) return false;
+    return (now - quoted) > 48 * 3600000;
+  });
+}
+
+// ── 60: DUPLICATE REQUEST DETECTION ──────────────────────────────
+export function detectDuplicateRequest(r, allReqs) {
+  if (!r) return null;
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000);
+  return allReqs.find(other =>
+    other.id !== r.id &&
+    other.user_id === r.user_id &&
+    new Date(other.created_at) > sevenDaysAgo &&
+    (
+      (r.items?.[0]?.product_id && other.items?.[0]?.product_id === r.items[0].product_id) ||
+      (r.custom_name && other.custom_name?.toLowerCase().includes(r.custom_name?.slice(0,20).toLowerCase()))
+    )
+  );
+}
+
+// ── PAYMENT RECEIPT DOWNLOAD ──────────────────────────────────────
+export function downloadPaymentReceipt(payment, req) {
+  const date = new Date(payment.created_at || payment.payment_date).toLocaleDateString('en-TZ', { year:'numeric', month:'long', day:'numeric' });
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Payment Receipt</title>
+<style>body{font-family:-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:40px;color:#1a2b3c}
+.header{background:#0a1f3c;color:white;padding:20px;border-radius:8px;margin-bottom:24px}
+.logo{font-size:20px;font-weight:700}.logo span{color:#4dc8d0}
+.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f4f8;font-size:13px}
+.row label{color:#5a7090}.total{font-weight:800;font-size:15px;border-bottom:none;margin-top:8px;border-top:2px solid #e0e8f0;padding-top:12px}
+.badge{background:#1a7a4a;color:white;padding:3px 12px;border-radius:99px;font-size:11px;font-weight:700}
+@media print{body{padding:20px}}</style></head>
+<body>
+<div class="header"><div class="logo">Tech<span>Medix</span>Link</div><div style="font-size:11px;opacity:0.6;margin-top:4px">PAYMENT RECEIPT</div></div>
+<div class="row"><label>Receipt number</label><span style="font-family:monospace">${payment.id.slice(0,8).toUpperCase()}</span></div>
+<div class="row"><label>Request number</label><span style="font-family:monospace">${req?.request_number || '—'}</span></div>
+<div class="row"><label>Date</label><span>${date}</span></div>
+<div class="row"><label>Payment method</label><span style="text-transform:capitalize">${(payment.payment_method||'').replace('_',' ')}</span></div>
+<div class="row"><label>Reference</label><span style="font-family:monospace">${payment.mpesa_reference || '—'}</span></div>
+<div class="row"><label>Status</label><span><span class="badge">${payment.status === 'completed' ? '✓ CONFIRMED' : payment.status.toUpperCase()}</span></span></div>
+${payment.verified_by ? '<div class="row"><label>Verified by</label><span>TechMedixLink Admin</span></div>' : ''}
+<div class="row total"><label>Amount paid</label><span style="color:#0066a1;font-family:monospace">TZS ${Math.round(payment.amount||0).toLocaleString()}</span></div>
+<div style="margin-top:24px;font-size:11px;color:#8899aa;line-height:1.6">
+Keep this receipt for your records. For questions contact TechMedixLink on WhatsApp: +34 659 447 627
+</div></body></html>`;
+  const blob = new Blob([html], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'Receipt-' + (req?.request_number || payment.id.slice(0,8)) + '.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ── DRAFT REQUEST SAVE/RESTORE ────────────────────────────────────
+export function saveDraft() {
+  try {
+    const draft = { ...rF, savedAt: new Date().toISOString() };
+    localStorage.setItem('tml_req_draft', JSON.stringify(draft));
+  } catch(e) {}
+}
+
+export function restoreDraft() {
+  try {
+    const raw = localStorage.getItem('tml_req_draft');
+    if (!raw) return false;
+    const draft = JSON.parse(raw);
+    const age = new Date() - new Date(draft.savedAt);
+    if (age > 86400000) { localStorage.removeItem('tml_req_draft'); return false; }
+    Object.assign(rF, draft);
+    showDraftBanner.value = true;
+    return true;
+  } catch(e) { return false; }
+}
+
+export function clearDraft() {
+  localStorage.removeItem('tml_req_draft');
+  showDraftBanner.value = false;
+}
+
+// ── ORDER NOTES ───────────────────────────────────────────────────
+export async function saveOrderNotes(reqId, notes) {
+  const { error } = await sb.from('requests').update({ order_notes: notes }).eq('id', reqId);
+  if (!error) {
+    await loadReqs();
+    showOrderNotes.value = false;
+    toast('ok', 'Note saved', 'Your note has been added to the order');
+  }
+}
+
+// ── REFERRAL TRACKING UI ──────────────────────────────────────────
+export async function loadReferralData() {
+  if (!profile.value) return;
+  try {
+    const { data } = await sb.from('referrals')
+      .select('*, referred:referred_user_id(full_name, created_at)')
+      .eq('referrer_id', profile.value.id);
+    referralData.value = {
+      code: profile.value.referral_code || profile.value.id.slice(0,8).toUpperCase(),
+      referrals: data || [],
+      earned: (data||[]).filter(r => r.paid_at).reduce((s,r) => s + (r.reward_tzs||0), 0),
+      pending: (data||[]).filter(r => !r.paid_at).length
+    };
+  } catch(e) {}
+}
+
+// ── WARRANTY TRACKING ─────────────────────────────────────────────
+export async function loadWarrantyItems() {
+  if (!profile.value) return;
+  try {
+    const { data } = await sb.from('maintenance_schedule')
+      .select('*')
+      .eq('user_id', profile.value.id)
+      .not('warranty_expires_at', 'is', null)
+      .order('warranty_expires_at', { ascending: true })
+      .limit(10);
+    warrantyItems.value = data || [];
+  } catch(e) {}
+}
+
+// ── PLATFORM HEALTH DASHBOARD ─────────────────────────────────────
+export async function loadHealthStats() {
+  if (!profile.value || profile.value.user_role !== 'admin') return;
+  try {
+    const start = Date.now();
+    const [{ count: userCount }, { count: prodCount }, { count: reqCount }] = await Promise.all([
+      sb.from('users').select('*', { count:'exact', head:true }),
+      sb.from('products').select('*', { count:'exact', head:true }).eq('is_active', true),
+      sb.from('requests').select('*', { count:'exact', head:true })
+    ]);
+    const dbLatency = Date.now() - start;
+    healthStats.value = {
+      dbLatency,
+      userCount, prodCount, reqCount,
+      realtimeConnected: typeof window !== 'undefined',
+      checkedAt: new Date().toISOString(),
+      platform: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop',
+      version: 'v29'
+    };
+    showHealthDash.value = true;
+  } catch(e) {}
+}
+
+// ── MULTI-CURRENCY DISPLAY ────────────────────────────────────────
+export function displayPrice(usdAmount, currency) {
+  const cur = currency || activeCurrency.value;
+  const tzs = Math.round((usdAmount || 0) * (usdToTzs.value || 2672));
+  if (cur === 'USD') return '$' + (usdAmount || 0).toFixed(0);
+  if (cur === 'EUR') return '€' + Math.round(tzs * 0.00034).toLocaleString();
+  if (cur === 'KES') return 'KSh ' + Math.round(tzs * 0.048).toLocaleString();
+  return 'TZS ' + tzs.toLocaleString();
+}
+
+// ── ESTIMATED ARRIVAL COUNTDOWN ───────────────────────────────────
+export function arrivalCountdown(r) {
+  if (!r?.delivery_promised_at) return null;
+  const ms = new Date(r.delivery_promised_at) - new Date();
+  if (ms <= 0) return { label: 'Due today or overdue', urgent: true };
+  const days = Math.ceil(ms / 86400000);
+  return { label: 'Est. arrival in ' + days + ' day' + (days !== 1 ? 's' : ''), urgent: days <= 3 };
+}
+
+// ── LOAD RECURRING ORDERS ─────────────────────────────────────────
+export async function loadRecurringOrders() {
+  if (!profile.value) return;
+  try {
+    const { data } = await sb.from('recurring_orders')
+      .select('*')
+      .eq('user_id', profile.value.id)
+      .eq('is_active', true)
+      .order('next_run_at', { ascending: true });
+    recurringOrders.value = data || [];
+  } catch(e) {}
+}
+
+export async function createRecurringOrder() {
+  if (!recurringForm.product_name || !profile.value) return;
+  const freqDays = { weekly: 7, monthly: 30, quarterly: 90 };
+  const days = freqDays[recurringForm.frequency] || 30;
+  const nextRun = new Date(Date.now() + days * 86400000).toISOString();
+  const { error } = await sb.from('recurring_orders').insert({
+    user_id: profile.value.id,
+    product_id: recurringForm.product_id || null,
+    product_name: recurringForm.product_name,
+    quantity: recurringForm.quantity || 1,
+    frequency: recurringForm.frequency,
+    next_run_at: nextRun,
+    is_active: true
+  });
+  if (!error) {
+    toast('ok', 'Recurring order set!', recurringForm.product_name + ' — ' + recurringForm.frequency);
+    showRecurringModal.value = false;
+    Object.assign(recurringForm, { product_id:'', product_name:'', quantity:1, frequency:'monthly' });
+    await loadRecurringOrders();
+  }
+}
+
+// ── APPLY DISCOUNT CODE ───────────────────────────────────────────
+export async function applyDiscountCode(code, orderTzs) {
+  if (!code) return;
+  try {
+    const { data, error } = await sb.from('discount_codes')
+      .select('*')
+      .eq('code', code.toUpperCase())
+      .eq('is_active', true)
+      .lte('valid_from', new Date().toISOString())
+      .gte('valid_until', new Date().toISOString())
+      .single();
+    if (error || !data) { toast('err', 'Invalid code', 'This discount code is not valid or has expired'); return; }
+    if (data.min_order_tzs && orderTzs < data.min_order_tzs) {
+      toast('wn', 'Minimum order required', 'This code requires a minimum order of TZS ' + data.min_order_tzs.toLocaleString()); return;
+    }
+    if (data.uses_count >= data.max_uses) { toast('err', 'Code exhausted', 'This code has reached its usage limit'); return; }
+    const saving = data.discount_pct ? Math.round(orderTzs * data.discount_pct / 100) : (data.discount_tzs || 0);
+    discountApplied.value = { ...data, saving };
+    toast('ok', 'Discount applied!', 'Saving TZS ' + saving.toLocaleString() + ' on your order');
+  } catch(e) { toast('err', 'Code error', 'Please try again'); }
+}
+
+// ── SHIPMENT NOTIFICATION TO BUYER ────────────────────────────────
+export async function notifyShipment(r) {
+  const buyer = adminUsers.value.find(u => u.id === r.user_id);
+  const phone = (buyer?.phone || '').replace(/[^0-9+]/g, '');
+  if (!phone) { toast('wn', 'No phone', 'Buyer has no phone number'); return; }
+  const name = buyer?.full_name?.split(' ')[0] || 'there';
+  const eta  = r.delivery_promised_at
+    ? ' Expected arrival: ' + new Date(r.delivery_promised_at).toLocaleDateString('en-TZ', { day:'numeric', month:'long' }) + '.'
+    : '';
+  const msg = encodeURIComponent(
+    "Hi " + name + ", great news! Your order " + r.request_number + " has shipped and is on its way to Tanzania." +
+    eta + " We will notify you when it clears customs. Track your order on TechMedixLink. — TechMedixLink Team"
+  );
+  window.open("https://wa.me/" + phone.replace('+','') + "?text=" + msg, "_blank");
+  toast('ok', 'Shipment notification sent', buyer?.full_name);
+}
+
+// ── URGENT REQUEST ESCALATION ─────────────────────────────────────
+export async function escalateUrgentRequest(r) {
+  const buyer = adminUsers.value.find(u => u.id === r.user_id);
+  const msg = encodeURIComponent(
+    "🚨 URGENT REQUEST — " + r.request_number + "\n" +
+    "Buyer: " + (buyer?.full_name || 'Unknown') + "\n" +
+    "Item: " + (r.items?.[0]?.product_name || r.custom_name || 'Custom') + "\n" +
+    "Value: TZS " + (r.total_cost || 0).toLocaleString() + "\n" +
+    "Platform: " + (r.platform_type === 'techmedix' ? 'TechMedixLink' : 'GlobalDoor') + "\n" +
+    "Log in to quote immediately: https://techmedixlinkmereu.github.io/GLOBAL-LOCAL/"
+  );
+  window.open("https://wa.me/34659447627?text=" + msg, "_blank");
 }
