@@ -1,7 +1,7 @@
 // TechMedixLink Service Worker
 // Clears all caches on activation so updates are always fresh
 
-const CACHE_VERSION = 'tml-v10';
+const CACHE_VERSION = 'tml-v32';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
