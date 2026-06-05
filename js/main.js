@@ -349,7 +349,7 @@ const app = createApp({
 
     // FIX 13: Update document title on tab change
     // FIX 9: Offline detection
-    const isOffline = ref(!navigator.onLine);
+    const isOffline = ref(false); // Don't show on load — only after confirmed disconnect
     window.addEventListener('online',  () => { isOffline.value = false; S.toast('ok', 'Back online'); });
     window.addEventListener('offline', () => { isOffline.value = true; });
 
