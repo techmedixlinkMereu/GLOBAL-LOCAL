@@ -45,7 +45,7 @@ import {
   recentlyViewed, showSearchSuggestions,
   myFacility, facilityMembers, showCreateFacility, inviteEmail, inviteRole,
   productBenchmark, benchmarkPct,
-  facilityForm, quoteReq, quoteForm, showQuoteModal,
+  facilityForm, quoteForm,
   announcement, showKanban, activeCurrency,
   showHealthDash, healthStats, buyerIntel, showBuyerIntel,
   showRecurringModal, recurringForm, recurringOrders,
