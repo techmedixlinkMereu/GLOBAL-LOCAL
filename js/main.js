@@ -9,7 +9,7 @@ import * as F from './formatters.js';
 import { sb } from './db.js';
 import { TECHMEDIX_CONFIG } from '../config.js';
 
-const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
+const { createApp, ref, computed, watch, onMounted, nextTick } = window.Vue;
 
 const app = createApp({
   setup() {
