@@ -322,3 +322,5 @@ export const referralData        = ref(null);
 export const warrantyItems       = ref([]);
 
 export const deliveryCodeInput = ref('');
+
+export const quoteForm = reactive({ item_cost:0, shipping_cost:0, duty_cost:0, service_fee:0, delivery_date:'', notes:'' });
