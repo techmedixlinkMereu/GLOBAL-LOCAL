@@ -469,7 +469,7 @@ const app = createApp({
             if (isAdmin.value) { await A.loadAdminUsers(); await A.loadShoppers(); }
             await A.loadAddresses();
             await A.loadUnreadMessageCounts();
-            const isNewish = !S.profile.value?.onboarding_done && !S.profile.value?.avatar_url && !S.profile.value?.phone;
+            const isNewish = S.profile.value?.onboarding_done === false;
             if (isNewish) A.startOnboarding();
             else S.toast('ok', 'Welcome back!', S.profile.value?.full_name || session.user.email || '');
 
