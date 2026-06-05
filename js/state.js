@@ -319,7 +319,7 @@ export const orderNotesReq       = ref(null);
 export const orderNotesText      = ref('');
 export const showOrderNotes      = ref(false);
 export const referralData        = ref(null);
-export const warrantyItems       = ref([]);
+export const warrantyItems       = ref([]);    
 
 export const deliveryCodeInput = ref('');
 
