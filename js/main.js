@@ -350,8 +350,8 @@ const app = createApp({
     // FIX 13: Update document title on tab change
     // FIX 9: Offline detection
     const isOffline = ref(false); // Don't show on load — only after confirmed disconnect
-    window.addEventListener('online',  () => { isOffline.value = false; S.toast('ok', 'Back online'); });
-    window.addEventListener('offline', () => { isOffline.value = true; });
+    window.addEventListener('online',  () => { S.toast('ok', 'Back online', 'Internet connection restored'); });
+    window.addEventListener('offline', () => { S.toast('wn', 'No internet connection', 'Some features may not work'); });
 
     watch(S.tab, (t) => {
       const titles = {
