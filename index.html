@@ -31,7 +31,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="TechMedixLink · Medical Equipment Platform">
 <meta name="twitter:description" content="Tanzania's premier medical equipment sourcing and procurement marketplace.">
-<link rel="stylesheet" href="app.css?v38">
+<link rel="stylesheet" href="app.css?v39">
 <style>
 @keyframes skeleton-pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .basket-pulse .fa-basket-shopping{animation:basket-bounce 0.4s ease}
@@ -2994,7 +2994,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div style="display:flex;flex-direction:column;gap:var(--s2)">
               <span class="badge" :class="detailReq.assignment_status==='accepted'?'b-ok':detailReq.assignment_status==='in_progress'?'b-in':'b-wn'">{{  detailReq.assignment_status?.replace('_',' ')||'Assigned'  }}</span>
-                <a v-if="detailReq.shopper_phone" :href="'https://wa.me/'+detailReq.shopper_phone.replace(/[^0-9]/g,'')" target="_blank" class="btn btn-ok btn-sm" style="text-decoration:none"><i class="fab fa-whatsapp"></i>WhatsApp</a>
+                <a v-if="detailReq.shopper_phone" :href="'https://wa.me/'+cleanPhone(detailReq.shopper_phone)" target="_blank" class="btn btn-ok btn-sm" style="text-decoration:none"><i class="fab fa-whatsapp"></i>WhatsApp</a>
               <a v-if="detailReq.shopper_phone" :href="'tel:'+detailReq.shopper_phone" class="btn btn-s btn-sm" style="text-decoration:none"><i class="fas fa-phone"></i>Call</a>
               <!-- Admin: update shopper status -->
               <template v-if="isAdmin && detailReq.shopper_assignment_id">
@@ -4044,7 +4044,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div v-if="adminViewUser.phone" class="info-strip ac" style="margin-bottom:var(--s3)">
           <i class="fas fa-phone" style="color:var(--a);flex-shrink:0"></i>
           <span style="font-size:var(--tsm);color:var(--tx-1)">{{  adminViewUser.phone  }}</span>
-          <a :href="'https://wa.me/'+adminViewUser.phone.replace(/[^0-9]/g,'')" target="_blank" class="btn btn-ok btn-sm btn-xs" style="margin-left:auto;text-decoration:none"><i class="fab fa-whatsapp"></i>WhatsApp</a>
+          <a :href="'https://wa.me/'+cleanPhone(adminViewUser.phone)" target="_blank" class="btn btn-ok btn-sm btn-xs" style="margin-left:auto;text-decoration:none"><i class="fab fa-whatsapp"></i>WhatsApp</a>
         </div>
         <!-- Requests for this user -->
         <div class="pd-section-ttl">Request history</div>
@@ -4215,7 +4215,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="font-size:var(--tsm);font-weight:600;color:var(--tx-1)">{{ orderDetailReq.shopper_name }}</div>
             <div style="font-size:var(--txs);color:var(--tx-3)">Your assigned shopper</div>
           </div>
-          <a v-if="orderDetailReq.shopper_phone" :href="'https://wa.me/'+orderDetailReq.shopper_phone.replace(/[^0-9]/g,'')" target="_blank" class="btn btn-ok btn-sm" style="text-decoration:none"><i class="fab fa-whatsapp"></i> WhatsApp</a>
+          <a v-if="orderDetailReq.shopper_phone" :href="'https://wa.me/'+cleanPhone(orderDetailReq.shopper_phone)" target="_blank" class="btn btn-ok btn-sm" style="text-decoration:none"><i class="fab fa-whatsapp"></i> WhatsApp</a>
         </div>
 
         <!-- Notes -->
@@ -4302,7 +4302,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
 <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script type="module" src="js/main.js?v38"></script>
+<script type="module" src="js/main.js?v39"></script>
 <script>
 // Register service worker for cache control
 if ('serviceWorker' in navigator) {
