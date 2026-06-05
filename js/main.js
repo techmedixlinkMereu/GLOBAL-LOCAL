@@ -536,6 +536,9 @@ const app = createApp({
     }
 
     // Password strength helpers (regex can't go in templates)
+    function cleanPhone(phone) {
+      return (phone || '').replace(/[^0-9]/g, '');
+    }
     function pwStrengthPct(pw) {
       if (!pw || pw.length < 6) return 25;
       if (pw.length < 8) return 50;
@@ -600,7 +603,7 @@ const app = createApp({
       atRiskRequests: atRiskRequests,
       announcement: S.announcement,
       deliveryCodeInput: S.deliveryCodeInput,
-      pwStrengthPct: pwStrengthPct,
+      pwStrengthPct: pwStrengthPct, cleanPhone,
       pwStrengthColor: pwStrengthColor,
       pwStrengthLabel: pwStrengthLabel,
       quoteReq: S.quoteReq,
