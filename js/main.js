@@ -535,6 +535,27 @@ const app = createApp({
       S.lightboxImg.value = all[S.lightboxIndex.value];
     }
 
+    // Password strength helpers (regex can't go in templates)
+    function pwStrengthPct(pw) {
+      if (!pw || pw.length < 6) return 25;
+      if (pw.length < 8) return 50;
+      if (/[A-Z]/.test(pw) && /[0-9]/.test(pw)) return 100;
+      return 75;
+    }
+    function pwStrengthColor(pw) {
+      const p = pwStrengthPct(pw);
+      if (p <= 25) return 'var(--err)';
+      if (p <= 50) return 'var(--warn)';
+      if (p <= 75) return 'var(--info)';
+      return 'var(--ok)';
+    }
+    function pwStrengthLabel(pw) {
+      if (!pw || pw.length < 6) return 'Too short';
+      if (pw.length < 8) return 'Weak — try 8+ characters';
+      if (/[A-Z]/.test(pw) && /[0-9]/.test(pw)) return 'Strong password';
+      return 'Medium — add uppercase and a number';
+    }
+
     // ── Return: everything the template needs ────────────────────
     return {
       // State — spread directly
