@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>TechMedixLink Debug</title>
+</head>
+<body>
+<div id="app" v-cloak></div>
+<div id="debug" style="font-family:monospace;padding:20px;background:#f0f0f0;margin:20px"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
+<script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
+
+<script type="module">
+const debug = document.getElementById('debug');
+const log = (msg, color='#000') => {
+  const el = document.createElement('div');
+  el.style.color = color;
+  el.textContent = msg;
+  debug.appendChild(el);
+  console.log(msg);
+};
+
+log('Starting module load test...');
+
+try {
+  log('1. Importing state.js...');
+  const S = await import('./js/state.js');
+  log('✓ state.js loaded OK — exports: ' + Object.keys(S).length, 'green');
+} catch(e) {
+  log('✗ state.js FAILED: ' + e.message, 'red');
+  log('  Stack: ' + e.stack?.split('\n')[1], 'red');
+}
+
+try {
+  log('2. Importing actions.js...');
+  const A = await import('./js/actions.js');
+  log('✓ actions.js loaded OK — exports: ' + Object.keys(A).length, 'green');
+} catch(e) {
+  log('✗ actions.js FAILED: ' + e.message, 'red');
+  log('  Stack: ' + e.stack?.split('\n')[1], 'red');
+}
+
+try {
+  log('3. Importing main.js...');
+  await import('./js/main.js?v=debug');
+  log('✓ main.js loaded OK', 'green');
+} catch(e) {
+  log('✗ main.js FAILED: ' + e.message, 'red');
+  log('  Stack: ' + e.stack?.split('\n')[1], 'red');
+}
+
+log('Done.');
+</script>
+</body>
+</html>
