@@ -59,6 +59,9 @@ input,select,textarea{font-family:var(--fb)}
 ::-webkit-scrollbar-track{background:var(--bg-2)}
 ::-webkit-scrollbar-thumb{background:var(--bg-4);border-radius:4px}
 [v-cloak]{display:none}
+[v-cloak] .ob-shell,[v-cloak] ~ .ob-shell{display:none!important}
+.ob-shell{display:none}
+.ob-shell.ob-active{display:flex}
 
 /* ══ LAYOUT ══ */
 .shell{display:flex;min-height:100vh}
