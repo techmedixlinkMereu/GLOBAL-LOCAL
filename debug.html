@@ -1,56 +1,78 @@
 <!DOCTYPE html>
 <html>
-<head>
-<meta charset="UTF-8">
-<title>TechMedixLink Debug</title>
-</head>
+<head><meta charset="UTF-8"><title>TechMedixLink Debug</title></head>
 <body>
-<div id="app" v-cloak></div>
-<div id="debug" style="font-family:monospace;padding:20px;background:#f0f0f0;margin:20px"></div>
+<div id="out" style="font-family:monospace;font-size:13px;padding:20px;white-space:pre-wrap"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
 <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
 
 <script type="module">
-const debug = document.getElementById('debug');
-const log = (msg, color='#000') => {
-  const el = document.createElement('div');
-  el.style.color = color;
-  el.textContent = msg;
-  debug.appendChild(el);
-  console.log(msg);
+const out = document.getElementById('out');
+const log = (msg, col) => { 
+  const d = document.createElement('div');
+  d.style.color = col||'#000';
+  d.textContent = msg;
+  out.appendChild(d);
 };
 
-log('Starting module load test...');
+// Override console.error to catch Vue warnings
+const origError = console.error;
+console.error = (...args) => {
+  log('CONSOLE.ERROR: ' + args.join(' '), 'orange');
+  origError(...args);
+};
+window.onerror = (msg, src, line, col) => {
+  log(`WINDOW ERROR: ${msg} at ${src}:${line}:${col}`, 'red');
+};
 
+log('Step 1: Loading modules...');
+const [S, A, F] = await Promise.all([
+  import('./js/state.js'),
+  import('./js/actions.js'),
+  import('./js/formatters.js'),
+]);
+log('✓ All modules loaded', 'green');
+log(`  state: ${Object.keys(S).length} exports`);
+log(`  actions: ${Object.keys(A).length} exports`);
+
+log('\nStep 2: Testing Vue createApp...');
 try {
-  log('1. Importing state.js...');
-  const S = await import('./js/state.js');
-  log('✓ state.js loaded OK — exports: ' + Object.keys(S).length, 'green');
+  const { createApp, ref } = Vue;
+  const app = createApp({
+    setup() {
+      log('  setup() running...', 'blue');
+      // Spread state — this is what main.js does
+      try {
+        const spread = {...S};
+        log(`  ...S spread OK: ${Object.keys(spread).length} keys`, 'green');
+      } catch(e) { log('  ...S spread FAILED: ' + e.message, 'red'); }
+      
+      try {
+        const spread = {...A};
+        log(`  ...A spread OK: ${Object.keys(spread).length} keys`, 'green');
+      } catch(e) { log('  ...A spread FAILED: ' + e.message, 'red'); }
+
+      return { ...S, ...A };
+    },
+    template: '<div>TEST OK</div>'
+  });
+  
+  const div = document.createElement('div');
+  document.body.appendChild(div);
+  app.mount(div);
+  log('✓ Vue mounted successfully!', 'green');
 } catch(e) {
-  log('✗ state.js FAILED: ' + e.message, 'red');
-  log('  Stack: ' + e.stack?.split('\n')[1], 'red');
+  log('✗ Vue FAILED: ' + e.message, 'red');
+  log('  ' + (e.stack?.split('\n')[1] || ''), 'red');
 }
 
-try {
-  log('2. Importing actions.js...');
-  const A = await import('./js/actions.js');
-  log('✓ actions.js loaded OK — exports: ' + Object.keys(A).length, 'green');
-} catch(e) {
-  log('✗ actions.js FAILED: ' + e.message, 'red');
-  log('  Stack: ' + e.stack?.split('\n')[1], 'red');
-}
+log('\nStep 3: Testing full main.js mount on #app...');
+// Check what showOnboarding value is
+log('  showOnboarding value: ' + S.showOnboarding?.value);
+log('  onboarding_done value: ' + S.onboardingDone?.value);
 
-try {
-  log('3. Importing main.js...');
-  await import('./js/main.js?v=debug');
-  log('✓ main.js loaded OK', 'green');
-} catch(e) {
-  log('✗ main.js FAILED: ' + e.message, 'red');
-  log('  Stack: ' + e.stack?.split('\n')[1], 'red');
-}
-
-log('Done.');
+log('\nDone.');
 </script>
 </body>
 </html>
