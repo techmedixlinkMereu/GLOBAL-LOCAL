@@ -16,7 +16,6 @@ import {
   showAdminUserModal, adminViewUser, adminEditingUser,
   showVerifyModal, showCancelModal, showOrderDetail, showProductDetail,
   showPasswordUpdate, showInquiryDetail, showMessagesPanel, showOnboarding,
-  showMessagesPanel as _showMsg,
   authLanding, authLandingMsg, authErr, magicSent, rateLimitUntil, rateLimitSecs,
   newPassword, newPasswordErr, onboardStep, onboardingDone,
   tab, platform, sidebarOpen, openStatusMenu, assignShopperId, addingAddress,
