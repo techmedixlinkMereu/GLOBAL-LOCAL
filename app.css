@@ -601,11 +601,11 @@ input,select,textarea{font-family:var(--fb)}
 .prof-av-edit{position:absolute;bottom:0;right:0;width:26px;height:26px;border-radius:50%;background:var(--philips);color:white;display:flex;align-items:center;justify-content:center;font-size:10px;border:2px solid white;cursor:pointer}
 
 /* Onboarding overlay */
-.ob-shell{position:fixed;inset:0;z-index:1100;background:rgba(10,31,60,0.92);backdrop-filter:blur(8px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:var(--s4)}
+.ob-shell{position:fixed;inset:0;z-index:1100;background:rgba(10,31,60,0.96);backdrop-filter:blur(4px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:var(--s4)}
 .ob-dots{display:flex;gap:8px;margin-bottom:var(--s5)}
 .ob-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.2);transition:all 0.3s;cursor:pointer}
 .ob-dot.active{background:#4dc8d0;width:24px;border-radius:4px}
-.ob-card{background:white;border-radius:var(--r4);padding:var(--s6);width:100%;max-width:480px;box-shadow:0 24px 80px rgba(0,0,0,0.4)}
+.ob-card{background:#ffffff;border-radius:var(--r4);padding:var(--s6);width:100%;max-width:500px;box-shadow:0 24px 80px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.15)}
 .ob-card-wide{max-width:580px}
 .ob-ttl{font-family:var(--fd);font-size:22px;font-weight:700;color:var(--tx-1);margin-bottom:var(--s2)}
 .ob-sub{font-size:var(--tsm);color:var(--tx-3);line-height:1.6;margin-bottom:var(--s4)}
