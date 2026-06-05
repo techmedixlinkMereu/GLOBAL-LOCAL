@@ -3,7 +3,7 @@
 
 const CACHE_VERSION = 'tml-v32';
 
-self.addEventListener('install', (e) => {
+self.addEventListener('install', (e) => {   
   self.skipWaiting();
 });
 
