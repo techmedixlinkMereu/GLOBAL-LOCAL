@@ -2319,32 +2319,7 @@ export async function createGroupBuyPool(productId, productName, targetQty, disc
 }
 
 // ── SEND QUOTE FORM ──────────────────────────────────────────────
-export async function sendQuote(r, quoteParts) {
-  const { item_cost, shipping_cost, duty_cost, service_fee } = quoteParts;
-  const total = item_cost + shipping_cost + (duty_cost||0) + service_fee;
-  const { error } = await sb.from('requests').update({
-    status: 'quoted',
-    item_cost,
-    shipping_cost,
-    service_fee,
-    total_cost: total,
-    balance_due: total,
-    quoted_date: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }).eq('id', r.id);
-  if (error) { toast('err', 'Quote failed', error.message); return; }
-  // Notify buyer
-  await sb.from('notifications').insert({
-    user_id: r.user_id,
-    title: 'Quote ready for ' + r.request_number,
-    message: 'Your quote is TZS ' + total.toLocaleString() + '. Log in to accept.',
-    notification_type: 'status_update',
-    request_id: r.id
-  });
-  await loadReqs();
-  toast('ok', 'Quote sent!', 'TZS ' + total.toLocaleString());
-  showQuoteModal.value = false;
-}
+
 
 // ═══════════════════════════════════════════════════════════════
 // ALL 60 FEATURES — COMPLETE IMPLEMENTATION
