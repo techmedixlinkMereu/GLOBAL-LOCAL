@@ -6,7 +6,7 @@
 
 import { TECHMEDIX_CONFIG } from '../config.js';
 
-const { ref, reactive, computed } = Vue;
+const { ref, reactive, computed } = window.Vue;
 
 // ── Core UI ──────────────────────────────────────────────────────
 export const loading             = ref(false);
@@ -319,7 +319,7 @@ export const orderNotesReq       = ref(null);
 export const orderNotesText      = ref('');
 export const showOrderNotes      = ref(false);
 export const referralData        = ref(null);
-export const warrantyItems       = ref([]);    
+export const warrantyItems       = ref([]);
 
 export const deliveryCodeInput = ref('');
 
