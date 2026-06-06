@@ -32,7 +32,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="TechMedixLink · Medical Equipment Platform">
 <meta name="twitter:description" content="Tanzania's premier medical equipment sourcing and procurement marketplace.">
-<link rel="stylesheet" href="app.css?v47">
+<link rel="stylesheet" href="app.css?v48">
 <style>
 @keyframes skeleton-pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .basket-pulse .fa-basket-shopping{animation:basket-bounce 0.4s ease}
@@ -66,13 +66,12 @@
   gtag('config', 'G-XXXXXXXXXX');
 </script> -->
 <script>
-// Hide loader once Vue mounts
-// Loader is hidden by Vue's onMounted - see main.js
-// Fallback: hide after 5 seconds if Vue fails
-setTimeout(() => {
-  const loader = document.getElementById('app-loader');
-  if (loader) loader.classList.add('hidden');
-}, 5000);
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    const loader = document.getElementById('app-loader');
+    if (loader) loader.classList.add('hidden');
+  }, 400);
+});
 </script>
 </head>
 <body>
@@ -4314,7 +4313,7 @@ setTimeout(() => {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
 <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script type="module" src="js/main.js?v47"></script>
+<script type="module" src="js/main.js?v48"></script>
 <script>
 // Register service worker for cache control
 if ('serviceWorker' in navigator) {
