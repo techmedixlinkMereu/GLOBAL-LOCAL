@@ -9,7 +9,7 @@ import * as F from './formatters.js';
 import { sb } from './db.js';
 import { TECHMEDIX_CONFIG } from '../config.js';
 
-const { createApp, ref, computed, watch, onMounted, nextTick } = window.Vue;
+const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
 
 const app = createApp({
   setup() {
@@ -383,6 +383,9 @@ const app = createApp({
 
     // ── onMounted: auth state machine ────────────────────────────
     onMounted(() => {
+      // Hide the loader now that Vue has mounted and processed the template
+      const loader = document.getElementById('app-loader');
+      if (loader) loader.classList.add('hidden');
       document.addEventListener('keydown', handleKey);
 
       // Load platform features (ads, group buys, templates)
