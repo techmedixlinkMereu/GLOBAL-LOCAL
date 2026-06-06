@@ -383,9 +383,6 @@ const app = createApp({
 
     // ── onMounted: auth state machine ────────────────────────────
     onMounted(() => {
-      // Hide the loader now that Vue has mounted and processed the template
-      const loader = document.getElementById('app-loader');
-      if (loader) loader.classList.add('hidden');
       document.addEventListener('keydown', handleKey);
 
       // Load platform features (ads, group buys, templates)
