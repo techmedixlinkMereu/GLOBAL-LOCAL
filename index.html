@@ -31,11 +31,16 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="TechMedixLink · Medical Equipment Platform">
 <meta name="twitter:description" content="Tanzania's premier medical equipment sourcing and procurement marketplace.">
-<link rel="stylesheet" href="app.css?v44">
+<link rel="stylesheet" href="app.css?v45">
 <style>
 @keyframes skeleton-pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .basket-pulse .fa-basket-shopping{animation:basket-bounce 0.4s ease}
 @keyframes basket-bounce{0%{transform:scale(1)}50%{transform:scale(1.4)}100%{transform:scale(1)}}
+/* Critical: loader covers screen before app.css loads */
+#app-loader{position:fixed;inset:0;background:#0a1f3c;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.3s ease,visibility 0.3s ease}
+#app-loader.hidden{opacity:0;visibility:hidden;pointer-events:none}
+/* Hide onboarding before Vue mounts */
+.ob-shell{display:none!important}
 /* Hide elements that flash before Vue mounts */
 .ob-shell{display:none!important}
 .modal-bg:not([style]){display:none!important}
@@ -4305,7 +4310,7 @@ setTimeout(() => {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
 <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script type="module" src="js/main.js?v44"></script>
+<script type="module" src="js/main.js?v45"></script>
 <script>
 // Register service worker for cache control
 if ('serviceWorker' in navigator) {
