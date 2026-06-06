@@ -32,7 +32,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="TechMedixLink · Medical Equipment Platform">
 <meta name="twitter:description" content="Tanzania's premier medical equipment sourcing and procurement marketplace.">
-<link rel="stylesheet" href="app.css?v48">
+<link rel="stylesheet" href="app.css?v52">
 <style>
 @keyframes skeleton-pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .basket-pulse .fa-basket-shopping{animation:basket-bounce 0.4s ease}
@@ -2057,7 +2057,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <!-- Kanban pipeline view -->
           <div v-if="showKanban" class="kanban-board">
-            <div v-for="stage in [{v:'pending',l:'Pending',c:'var(--tx-4)'},{v:'quoted',l:'Quoted',c:'var(--warn)'},{v:'deposit_paid',l:'Deposit Paid',c:'var(--philips)'},{v:'sourcing',l:'Sourcing',c:'var(--info)'},{v:'shipped',l:'Shipped',c:'var(--siemens-teal)'},{v:'in_transit',l:'In Transit',c:'var(--ok)'},{v:'delivered',l:'Delivered',c:'#1a8a3a'}]" :key="stage.v" class="kanban-col">
+            <div v-for="stage in kanbanStages" :key="stage.v" class="kanban-col">
               <div class="kanban-col-hd" :style="{borderTopColor:stage.c}">
                 <span style="font-weight:700;font-size:11px;color:var(--tx-2)">{{ stage.l }}</span>
                 <span class="nav-chip">{{ filteredAdminReqs.filter(r=>r.status===stage.v).length }}</span>
@@ -4313,17 +4313,12 @@ document.addEventListener('DOMContentLoaded', () => {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
 <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script type="module" src="js/main.js?v48"></script>
+<script type="module" src="js/main.js?v52"></script>
 <script>
-// Register service worker for cache control
+// Unregister any existing service workers to prevent stale cache
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => {
-        // Force update on every load
-        reg.update();
-        if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-      });
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(reg => reg.unregister());
   });
 }
 </script>
@@ -4413,7 +4408,7 @@ if ('serviceWorker' in navigator) {
     <div class="modal modal-sm">
       <div class="modal-hd"><div class="modal-ttl">Platform Health</div><button class="modal-x" @click="showHealthDash=false"><i class="fas fa-times"></i></button></div>
       <div class="modal-body">
-        <div v-for="row in [{l:'DB latency',v:healthStats.dbLatency+'ms',ok:healthStats.dbLatency<500},{l:'Active users',v:healthStats.userCount},{l:'Active products',v:healthStats.prodCount},{l:'Total requests',v:healthStats.reqCount},{l:'Platform version',v:healthStats.version},{l:'Checked at',v:new Date(healthStats.checkedAt).toLocaleTimeString()}]" :key="row.l" class="pmt-inst-row" style="font-size:12px;padding:6px 0;border-bottom:1px solid var(--ln-0)">
+        <div v-for="row in healthStatRows(healthStats)" :key="row.l" class="pmt-inst-row" style="font-size:12px;padding:6px 0;border-bottom:1px solid var(--ln-0)">
           <span style="color:var(--tx-3)">{{ row.l }}</span>
           <strong :style="row.ok===false?'color:var(--err)':row.ok?'color:var(--ok)':''">{{ row.v }}</strong>
         </div>
