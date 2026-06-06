@@ -536,6 +536,28 @@ const app = createApp({
     }
 
     // Password strength helpers (regex can't go in templates)
+    function healthStatRows(hs) {
+      if (!hs) return [];
+      return [
+        {l:'DB latency',    v: hs.dbLatency+'ms',                        ok: hs.dbLatency < 500},
+        {l:'Active users',  v: hs.userCount,                             ok: true},
+        {l:'Active products',v: hs.prodCount,                            ok: true},
+        {l:'Total requests',v: hs.reqCount,                              ok: true},
+        {l:'Version',       v: hs.version,                               ok: true},
+        {l:'Checked at',    v: new Date(hs.checkedAt).toLocaleTimeString(), ok: true},
+      ];
+    }
+
+    const kanbanStages = [
+      {v:'pending',      l:'Pending',      c:'#8899aa'},
+      {v:'quoted',       l:'Quoted',       c:'#c47a00'},
+      {v:'deposit_paid', l:'Deposit Paid', c:'#0066a1'},
+      {v:'sourcing',     l:'Sourcing',     c:'#0077cc'},
+      {v:'shipped',      l:'Shipped',      c:'#00b4a0'},
+      {v:'in_transit',   l:'In Transit',   c:'#1a7a4a'},
+      {v:'delivered',    l:'Delivered',    c:'#1a8a3a'},
+    ];
+
     function cleanPhone(phone) {
       return (phone || '').replace(/[^0-9]/g, '');
     }
@@ -595,9 +617,9 @@ const app = createApp({
       exportRequestsCSV: (reqs) => A.exportRequestsCSV(reqs, S.adminUsers.value),
       markNotificationRead: A.markNotificationRead,
 
-      // Local computed + helpers (not in ...S or ...A spreads)
-      atRiskRequests,
-      pwStrengthPct, pwStrengthColor, pwStrengthLabel, cleanPhone,
+      // Helpers added for template (not in ...S or ...A)
+      pwStrengthPct, pwStrengthColor, pwStrengthLabel, cleanPhone, kanbanStages, healthStatRows,
+      atRiskRequests, searchSuggestions,
     };
   }
 });
