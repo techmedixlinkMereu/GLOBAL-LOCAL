@@ -450,6 +450,8 @@ const app = createApp({
 
       S.loading.value = true;
       S.loadMsg.value = 'Loading…';
+      // Safety: force loading false after 8 seconds regardless
+      setTimeout(() => { S.loading.value = false; }, 8000);
 
       sb.auth.onAuthStateChange(async (event, session) => {
         try {
