@@ -31,12 +31,14 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="TechMedixLink · Medical Equipment Platform">
 <meta name="twitter:description" content="Tanzania's premier medical equipment sourcing and procurement marketplace.">
-<link rel="stylesheet" href="app.css?v42">
+<link rel="stylesheet" href="app.css?v44">
 <style>
 @keyframes skeleton-pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .basket-pulse .fa-basket-shopping{animation:basket-bounce 0.4s ease}
 @keyframes basket-bounce{0%{transform:scale(1)}50%{transform:scale(1.4)}100%{transform:scale(1)}}
+/* Hide elements that flash before Vue mounts */
 .ob-shell{display:none!important}
+.modal-bg:not([style]){display:none!important}
 </style>
 <style>
 @keyframes basket-pulse { 0%,100%{transform:scale(1)} 40%{transform:scale(1.35)} 70%{transform:scale(0.9)} }
@@ -56,12 +58,12 @@
 </script> -->
 <script>
 // Hide loader once Vue mounts
-document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(() => {
-    const loader = document.getElementById('app-loader');
-    if (loader) loader.classList.add('hidden');
-  }, 400);
-});
+// Loader is hidden by Vue's onMounted - see main.js
+// Fallback: hide after 5 seconds if Vue fails
+setTimeout(() => {
+  const loader = document.getElementById('app-loader');
+  if (loader) loader.classList.add('hidden');
+}, 5000);
 </script>
 </head>
 <body>
@@ -4303,7 +4305,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
 <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script type="module" src="js/main.js?v42"></script>
+<script type="module" src="js/main.js?v44"></script>
 <script>
 // Register service worker for cache control
 if ('serviceWorker' in navigator) {
