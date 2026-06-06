@@ -6,7 +6,7 @@
 
 import { TECHMEDIX_CONFIG } from '../config.js';
 
-const { ref, reactive, computed } = window.Vue;
+const { ref, reactive, computed } = Vue;
 
 // ── Core UI ──────────────────────────────────────────────────────
 export const loading             = ref(false);
@@ -295,32 +295,36 @@ export const sendQuoteForm = reactive({ item_cost:0, shipping_cost:0, duty_cost:
 
 export const facilityForm = reactive({ name:'', type:'hospital', region:'', district:'' });
 
-// ── 60-feature additions ─────────────────────────────────────────
-export const announcement        = ref(null);
-export const showKanban          = ref(false);
-export const activeCurrency      = ref('TZS');
-export const currencyRates       = reactive({ TZS: 1, USD: 0.00037, EUR: 0.00034, KES: 0.048 });
-export const showHealthDash      = ref(false);
-export const healthStats         = ref(null);
-export const buyerIntel          = ref(null);
-export const showBuyerIntel      = ref(false);
-export const showRecurringModal  = ref(false);
-export const recurringForm       = reactive({ product_id:'', product_name:'', quantity:1, frequency:'monthly' });
-export const recurringOrders     = ref([]);
-export const showDiscount        = ref(false);
-export const discountCode        = ref('');
-export const discountApplied     = ref(null);
-export const showDraftBanner     = ref(false);
-export const showPaymentReceipt  = ref(false);
-export const receiptPayment      = ref(null);
-export const showUploadSlip      = ref(false);
-export const uploadSlipPayment   = ref(null);
-export const orderNotesReq       = ref(null);
-export const orderNotesText      = ref('');
-export const showOrderNotes      = ref(false);
-export const referralData        = ref(null);
-export const warrantyItems       = ref([]);
 
-export const deliveryCodeInput = ref('');
+// ── Feature vars needed by template ─────────────────────────────
+export const buyerIntel         = ref(null);
+export const showBuyerIntel     = ref(false);
+export const deliveryCodeInput  = ref('');
+export const dutyCategory       = ref('');
+export const dutyValue          = ref(0);
+export const dutyResult         = ref(null);
+export const productRequests    = ref([]);
+export const newProductRequest  = ref('');
+export const newsletterEmail    = ref('');
+export const myFacility         = ref(null);
+export const facilityMembers    = ref([]);
+export const inviteEmail        = ref('');
+export const inviteRole         = ref('requester');
+export const recentlyViewed     = ref([]);
+export const showSearchSuggestions = ref(false);
+export const verifiedSellers    = ref([]);
+export const announcement       = ref(null);
+export const showKanban         = ref(false);
+export const showOrderNotes     = ref(false);
+export const orderNotesReq      = ref(null);
+export const orderNotesText     = ref('');
+export const showDraftBanner    = ref(false);
+export const showQuoteModal     = ref(false);
+export const quoteReq           = ref(null);
+export const quoteForm          = reactive({ item_cost:0, shipping_cost:0, duty_cost:0, service_fee:0 });
+export const facilityForm       = reactive({ name:'', type:'hospital', region:'', district:'' });
 
-export const quoteForm = reactive({ item_cost:0, shipping_cost:0, duty_cost:0, service_fee:0, delivery_date:'', notes:'' });
+export const healthStats      = ref(null);
+export const showHealthDash   = ref(false);
+export const discountApplied  = ref(null);
+export const discountCode     = ref('');
