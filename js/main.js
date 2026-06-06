@@ -286,7 +286,6 @@ const app = createApp({
 
     function goTab(t) {
       A.goTab(t, A.loadAnalytics, () => A.loadSellerAnalytics(myListings.value));
-      if (t === 'facility') A.loadMyFacility();
     }
 
     function saveReq() { return A.saveReq(selectedProduct.value, reqCostEstimate.value); }
@@ -387,8 +386,6 @@ const app = createApp({
 
       // Load platform features (ads, group buys, templates)
       A.loadPlatformFeatures();
-      A.loadVerifiedSellers();
-      A.loadRecentlyViewed();
 
       // ITEM 85: Restore basket from localStorage
       try {
@@ -450,8 +447,6 @@ const app = createApp({
 
       S.loading.value = true;
       S.loadMsg.value = 'Loading…';
-      // Safety: force loading false after 8 seconds regardless
-      setTimeout(() => { S.loading.value = false; }, 8000);
 
       sb.auth.onAuthStateChange(async (event, session) => {
         try {
@@ -514,8 +509,7 @@ const app = createApp({
           } else if (event === 'INITIAL_SESSION') {
             if (!session) await A.loadAll();
           }
-        } catch(e) {
-        } finally {
+        } catch(e) { console.error('[TML auth error]', e); } finally {
           S.loading.value = false;
         }
       });
@@ -618,10 +612,6 @@ const app = createApp({
       confirmPaymentAdmin: A.confirmPaymentAdmin,
       exportRequestsCSV: (reqs) => A.exportRequestsCSV(reqs, S.adminUsers.value),
       markNotificationRead: A.markNotificationRead,
-
-      // Helpers added for template (not in ...S or ...A)
-      pwStrengthPct, pwStrengthColor, pwStrengthLabel, cleanPhone, kanbanStages, healthStatRows,
-      atRiskRequests, searchSuggestions,
     };
   }
 });
